@@ -1,0 +1,10 @@
+gettimeofday : struct timeval, struct timezone
+timeval =	time_t secondes
+		suseconds_t	microseconds
+	set la struct pour le nombre de seconde / microseconde since Epoch
+timezone = 	int minutewest	minute west of greenwich
+		int	dsttime	type of DST correction
+
+		return 0 sucess -1 failure, set errno
+
+mutex lock suspend le thread appellant jusqu'a ce qu'il soit deverouillé
