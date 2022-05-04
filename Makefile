@@ -1,6 +1,7 @@
 NAME	= Philosophers
 
-SRC	= ./main.c
+SRC	= src/main.c	src/Philosophers.c	src/ft_init.c\
+	src/ft_return.c	src/utils.c
 
 HEADER	= ./philosophers.h
 
