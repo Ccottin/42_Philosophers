@@ -15,8 +15,24 @@ unsigned int	ft_atoi(char *nptr)
 		res = res * 10 + (nptr[i] - 48);
 		i++;
 	}
-	res = res * sign;
 	if (res > 4294967295)
 		return (-1);
-	return (res);
+	return ((unsigned int)res);
+}
+
+void	*ft_calloc(int nmem)
+{
+	int	i;
+	char	*str;
+
+	str = malloc(nmem);
+	if (!str)
+		return (NULL);
+	i = 0;
+	while (i < nmem)
+	{
+		str[i] = 0;
+		i++;
+	}
+	return ((void*)str);
 }
