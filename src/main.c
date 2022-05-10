@@ -4,7 +4,6 @@
 int	set_arg(t_data *data, char **av)
 {
 	t_philo		*philo;
-	pthread_mutex_t	*printf;
 
 	data->nb_p = ft_atoi(av[1]);
 	data->t_t_d = ft_atoi(av[2]);
@@ -14,11 +13,12 @@ int	set_arg(t_data *data, char **av)
 	if (!philo)
 		return (-1);
 	data->philo = philo;
-	printf = ft_calloc(sizeof(pthread_mutex_t));
-	if (!printf)
+	data->l_data = ft_calloc(sizeof(pthread_mutex_t));
+	data->printf = ft_calloc(sizeof(pthread_mutex_t));
+	if (!data->printf || !data->l_data)
 		return (-1);
-	pthread_mutex_init(printf, NULL);
-	data->printf = printf;
+	pthread_mutex_init(data->l_data, NULL);
+	pthread_mutex_init(data->printf, NULL);
 	return (0);
 }
 
@@ -26,11 +26,10 @@ int	main(int ac, char **av)
 {
 	t_data	data;
 
-	if (ac != 4 && ac != 5 /*|| check_args != 0*/)
+	if (ac != 5 && ac != 6 /*|| check_args != 0*/)
 		return (ft_return(0, &data)) ;
 	if (set_arg(&data, av) == -1)
 		return (-1);
-	get_time(&(data.b_time));
 	Philosophers(&data);
 	ft_return(1, &data);
 }
