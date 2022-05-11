@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/11 14:31:54 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/11 20:17:57 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,6 +92,8 @@ int	eat_last(t_philo *philo)
 	return (0);
 }
 
+
+
 int	eat(t_philo *philo)
 {
 	if (take_fork(philo, philo->nb) == -1)
@@ -102,7 +104,7 @@ int	eat(t_philo *philo)
 		return (-1);
 	if (pthread_mutex_lock(&(philo->time_m)))
 		return (-1);
-	philo->p_time = philo->p_time + philo->t_t_d;
+	philo->p_time = philo->p_time + philo->t_t_e;
 	if (pthread_mutex_unlock(&(philo->time_m)))
 		return (-1);
 	usleep(philo->t_t_e * 1000);
@@ -146,7 +148,6 @@ void	*alive(void *ptr)
 	life = 1;
 	while (life)
 	{
-	//trouver le moyen de poser un truc pour checker si il peut prendre les fourchettes ou pqs
 		still_breathing(philo, &life);
 		if (life && philo->nb == philo->nb_p)
 			ret = eat_last(philo);
@@ -177,6 +178,7 @@ int	get_time(size_t *time, size_t *b_time)
 	return (0);
 }
 
+//alrs comme ca on protege pas son init??
 void	init_philo(unsigned int nb, t_data *data)
 {
 	t_philo	philo;
@@ -189,7 +191,11 @@ void	init_philo(unsigned int nb, t_data *data)
 	philo.nb_p = data->nb_p;
 	philo.printf = data->printf;
 	philo.is_alive = 1;
+	philo.shall_eat = 0;
+	philo.politely_wait = 0;
 	philo.fork = 0;
+	pthread_mutex_init(&(philo.shall_eat_m), NULL);
+	pthread_mutex_init(&(philo.politely_wait_m), NULL);
 	pthread_mutex_init(&(philo.fork_m), NULL);
 	pthread_mutex_init(&(philo.life), NULL);
 	pthread_mutex_init(&(philo.time_m), NULL);
@@ -226,6 +232,117 @@ int	kill_em_all(t_data *data)
 	}
 	return (0);
 }
+//TOUT REPRENDRE OMFG
+
+int	check_fork(t_data *data, unsigned int i, size_t *ret)
+{
+	if (phtread_mutex_lock(&(data->philo[i].fork_m)))
+		return (-1);
+	*ret = data->philo[i].fork;
+	if (phtread_mutex_unlock(&(data->philo[i].fork_m)))
+		return (-1);
+	if (*ret != 0)
+		return (0);
+	if (phtread_mutex_lock(data->philo[i].fork1_m))
+		return (-1);
+	*ret = data->philo[i].fork1;
+	if (phtread_mutex_unlock(data->philo[i].fork1_m))
+		return (-1);
+	return (0);
+}
+
+int	check_fellow(t_philo *philo, size_t *temp, int *ret)
+{
+	if (phtread_mutex_lock(philo.time_m))
+		return (-1);
+	if (*temp > philo.p_time || temp == NULL)
+		*ret = philo.p_time;
+	if (phtread_mutex_unlock(&(data->philo[i].time_m)))
+		return (-1);
+	return (0);
+}
+
+int	must_wait(t_philo *philo, size_t ret, size_t temp)
+{
+	if (pthread_mutex_lock(&(philo->politely_wait_m)))
+		return (-1);
+	if (temp < ret)
+		philo->politely_wait = 
+		philo->politely_wait = temp - ret;
+	if (pthread_mutex_unlock(&(philo->politely_wait_m)))
+		return (-1);
+}
+
+int	get_philo_time(t_data *data, unsigned int i, size_t *temp)
+{
+	if (phtread_mutex_lock(&(data->philo[i].time_m)))
+		return (-1);
+	*temp = data->philo[i].p_time;
+	if (phtread_mutex_unlock(&(data->philo[i].time_m)))
+		return (-1);
+}
+
+int	nagging_philo(t_data *data, unsigned int i)
+{
+}
+
+int	spaghettis(t_data *data, unsigned int i)
+{
+	size_t	temp;
+	size_t	ret;
+
+	if (i == 0 || i == data->nb.p - 1)
+		return (nagging_philo(data, i)); // a coder
+	if (check_fork(data, i, &ret))
+		return (-1);
+	if (ret != 0)
+	{	if (check_fellow(data->philo[ret - 1], NULL, &ret))
+			return (-1);
+		if (get_philo_time(data, i, &temp))
+			return (-1);
+		return (must_wait(data->philo[i], ret, temp);
+	}
+		if (i == 0)//a bouger
+	{
+		if (check_fellow(&data->philo[data->nb_p - 1], &temp, &ret))
+			return (-1);
+	}
+	else
+	{
+		if (check_fellow(&data->philo[i - 1], &temp, &ret))
+			return (-1);
+	}
+	if (ret != 0)
+	{
+		if (must_wait(data->philo[i]), ret, temp)
+			return (-1);
+		return (0);
+	}
+	if (i == data->nb.p -1)//a bouger
+	{
+		if (check_fellow(&data->philo[0], &temp, &ret))
+			return (-1);
+	}
+	else
+	{
+		if (check_fellow(&data->philo[i + 1], &temp, &ret))
+			return (-1);
+	}
+	if (ret == 0)
+	{
+		if (phtread_mutex_lock(&(data->philo[i].shall_eat_m)))
+			return (-1);
+		data->philo[i].shall_eat = 1;
+		if (phtread_mutex_unlock(&(data->philo[i].shall_eat_m)))
+			return (-1);
+	}
+	else
+	{
+		if (must_wait(data->philo[i], ret, temp))
+			return (-1);
+	}	
+	return (0);
+}
 
 int	check_alive(t_data *data)
 {
@@ -248,6 +365,8 @@ int	check_alive(t_data *data)
 			return (0);
 		}
 		if (pthread_mutex_unlock(&(data->philo[i].time_m)))
+			return (-1);
+		if (spaghettis(data, i))
 			return (-1);
 		i++;
 		if (i == data->nb_p)
@@ -280,7 +399,8 @@ int	Philosophers(t_data *data)
 		i = 0;
 		while (i < data->nb_p)
 		{
-			pthread_join(data->philo[i].thread, NULL);
+			(if pthread_join(data->philo[i].thread, NULL))
+				return (-1);
 			i++;
 		}
 	}
