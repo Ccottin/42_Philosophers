@@ -43,5 +43,6 @@ unsigned int	ft_atoi(char *nptr);
 int		ft_return(int mark, t_data *data);
 void		*ft_calloc(int nmem);
 int		Philosophers(t_data *data);
+int		ft_strcmp(char *s1, char *s2);
 
 #endif
