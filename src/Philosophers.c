@@ -93,7 +93,6 @@ int	eat_last(t_philo *philo)
 }
 
 
-
 int	eat(t_philo *philo)
 {
 	if (take_fork(philo, philo->nb) == -1)
@@ -143,12 +142,36 @@ void	*alive(void *ptr)
 	t_philo	*philo;
 	int	ret;
 	int	life;
+	size_t	meal;
 	
 	philo = (t_philo*)ptr;
 	life = 1;
+	meal = 0;
+	if (philo->nb % 2 != 0)
+	{
+		if (life && ft_print(philo, "is thinking") == -1)
+			return ((void*)-1);
+		usleep(philo->t_t_e * 1000);
+	}
 	while (life)
 	{
 		still_breathing(philo, &life);
+		while (life && meal == 0)
+		{	
+			if (pthread_mutex_lock(&(philo->politely_wait_m)))
+				return ((void*)-1);
+			meal = philo->politely_wait;
+			if (pthread_mutex_unlock(&(philo->politely_wait_m)))
+				return ((void*)-1);
+			usleep(meal);
+			still_breathing(philo, &life);
+			if (pthread_mutex_lock(&(philo->shall_eat_m)))
+				return ((void*)-1);
+			meal = philo->shall_eat;
+			if (pthread_mutex_unlock(&(philo->shall_eat_m)))
+				return ((void*)-1);
+			still_breathing(philo, &life);
+		}
 		if (life && philo->nb == philo->nb_p)
 			ret = eat_last(philo);
 		else if (life && philo->nb != philo->nb_p)
@@ -191,7 +214,10 @@ void	init_philo(unsigned int nb, t_data *data)
 	philo.nb_p = data->nb_p;
 	philo.printf = data->printf;
 	philo.is_alive = 1;
-	philo.shall_eat = 0;
+	if (nb % 2 == 0)
+		philo.shall_eat = 1;
+	else
+		philo.shall_eat = 0;
 	philo.politely_wait = 0;
 	philo.fork = 0;
 	pthread_mutex_init(&(philo.shall_eat_m), NULL);
@@ -199,7 +225,7 @@ void	init_philo(unsigned int nb, t_data *data)
 	pthread_mutex_init(&(philo.fork_m), NULL);
 	pthread_mutex_init(&(philo.life), NULL);
 	pthread_mutex_init(&(philo.time_m), NULL);
-	if (nb == data->nb_p - 1)
+	if (data->nb_p != 1 && nb == data->nb_p - 1)
 	{
 		philo.fork1 = &(data->philo[0].fork);
 		philo.fork1_m = &(data->philo[0].fork_m);
@@ -232,115 +258,160 @@ int	kill_em_all(t_data *data)
 	}
 	return (0);
 }
-//TOUT REPRENDRE OMFG
 
 int	check_fork(t_data *data, unsigned int i, size_t *ret)
+//si check fork revient 0 c libre sinon c id du philo qui mange
 {
-	if (phtread_mutex_lock(&(data->philo[i].fork_m)))
+	if (pthread_mutex_lock(&(data->philo[i].fork_m)))
 		return (-1);
 	*ret = data->philo[i].fork;
-	if (phtread_mutex_unlock(&(data->philo[i].fork_m)))
+	if (pthread_mutex_unlock(&(data->philo[i].fork_m)))
 		return (-1);
 	if (*ret != 0)
 		return (0);
-	if (phtread_mutex_lock(data->philo[i].fork1_m))
+	if (pthread_mutex_lock(data->philo[i].fork1_m))
 		return (-1);
-	*ret = data->philo[i].fork1;
-	if (phtread_mutex_unlock(data->philo[i].fork1_m))
-		return (-1);
-	return (0);
-}
-
-int	check_fellow(t_philo *philo, size_t *temp, int *ret)
-{
-	if (phtread_mutex_lock(philo.time_m))
-		return (-1);
-	if (*temp > philo.p_time || temp == NULL)
-		*ret = philo.p_time;
-	if (phtread_mutex_unlock(&(data->philo[i].time_m)))
+	*ret = *(data->philo[i].fork1);
+	if (pthread_mutex_unlock(data->philo[i].fork1_m))
 		return (-1);
 	return (0);
 }
 
-int	must_wait(t_philo *philo, size_t ret, size_t temp)
+int	get_philo_time(t_philo *philo, size_t *ret)
 {
-	if (pthread_mutex_lock(&(philo->politely_wait_m)))
+	if (pthread_mutex_lock(&(philo->time_m)))
 		return (-1);
-	if (temp < ret)
-		philo->politely_wait = 
-		philo->politely_wait = temp - ret;
-	if (pthread_mutex_unlock(&(philo->politely_wait_m)))
+	*ret = philo->p_time;
+	if (pthread_mutex_unlock(&(philo->time_m)))
 		return (-1);
+	return (0);
 }
 
-int	get_philo_time(t_data *data, unsigned int i, size_t *temp)
+int	must_wait(t_data *data, unsigned int philo_eating, size_t *ret, unsigned int i)
 {
-	if (phtread_mutex_lock(&(data->philo[i].time_m)))
+	size_t	time;
+
+	if (pthread_mutex_lock(&(data->philo[philo_eating].time_m)))
 		return (-1);
-	*temp = data->philo[i].p_time;
-	if (phtread_mutex_unlock(&(data->philo[i].time_m)))
+	*ret = data->philo[philo_eating].p_time;
+	if (pthread_mutex_unlock(&(data->philo[philo_eating].time_m)))
 		return (-1);
+	if (get_time(&time, &(data->b_time)))
+		return (-1);
+	if (*ret < time)
+	{
+		if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+		data->philo[i].politely_wait = 0;
+		if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+	}
+	else
+	{
+		if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+		data->philo[i].politely_wait = *ret - time;
+		if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+	}
+	return (0);
 }
 
-int	nagging_philo(t_data *data, unsigned int i)
+int	check_fellow(t_philo *philo, size_t *temp, size_t time_i)
+{//retourne zero si philo + 1 doit attendre
+	if (get_philo_time(philo, temp))
+		return (-1);
+	if (*temp > time_i)
+		*temp = 0;
+	return (0);
+}
+
+int	must_wait1(t_data *data, unsigned int i)
 {
+	if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
+		return (-1);
+	data->philo[i].politely_wait = data->t_t_e;
+	if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
+		return (-1);
+	return (0);
+
+}
+int	nagging_philo1(t_data *data, unsigned int i, size_t ret, size_t time_i)
+{
+	size_t	temp;
+
+	temp = 0;
+	if (ret != i - 1 && check_fellow(&(data->philo[i - 1]), &temp, time_i))
+		return (-1);
+	if (temp != 0)
+		return (must_wait1(data, i));
+	if (ret != 1 && check_fellow(&(data->philo[0]), &temp, time_i))
+		return (-1);
+	if (temp != 0)
+		return (must_wait1(data, i));
+	if (ret == 1)
+		return (must_wait(data, 0, &ret, i));
+	return (must_wait(data, ret - 1, &ret, i));
+}
+
+int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
+{
+	size_t	temp;
+
+	temp = 0;
+	if (ret != data->nb_p && check_fellow(&(data->philo[data->nb_p - 1]), &temp, time_i))
+		return (-1);
+	if (temp != 0)
+		return (must_wait1(data, i));
+	if (ret != i + 1 && check_fellow(&(data->philo[i + 1]), &temp, time_i))
+			return (-1);
+	if (temp != 0)
+		return (must_wait1(data, i));
+	if (ret == data->nb_p)
+		return (must_wait(data, data->nb_p - 1, &ret, i));
+	return (must_wait(data, ret - 1, &ret, i));
+}
+
+int	philo_can_eat(t_data *data, unsigned int i, size_ti)
+{
+	
 }
 
 int	spaghettis(t_data *data, unsigned int i)
 {
 	size_t	temp;
 	size_t	ret;
+	size_t	time_i;
 
-	if (i == 0 || i == data->nb.p - 1)
-		return (nagging_philo(data, i)); // a coder
 	if (check_fork(data, i, &ret))
 		return (-1);
-	if (ret != 0)
-	{	if (check_fellow(data->philo[ret - 1], NULL, &ret))
-			return (-1);
-		if (get_philo_time(data, i, &temp))
-			return (-1);
-		return (must_wait(data->philo[i], ret, temp);
-	}
-		if (i == 0)//a bouger
-	{
-		if (check_fellow(&data->philo[data->nb_p - 1], &temp, &ret))
-			return (-1);
-	}
-	else
-	{
-		if (check_fellow(&data->philo[i - 1], &temp, &ret))
-			return (-1);
-	}
-	if (ret != 0)
-	{
-		if (must_wait(data->philo[i]), ret, temp)
-			return (-1);
+	if (ret == data->philo[i].nb)
 		return (0);
-	}
-	if (i == data->nb.p -1)//a bouger
+	if (ret != 0)
 	{
-		if (check_fellow(&data->philo[0], &temp, &ret))
+		if (get_philo_time(&(data->philo[i]), &time_i))
 			return (-1);
+		if (i == 0)
+			return (nagging_philo(data, i, ret, time_i));
+		if (i == data->nb_p - 1)
+			return (nagging_philo1(data, i, ret, time_i));
+		/*on peut surement opti en enleveant la premier condition vu qu'ils sont déjà check au philo précédent*/
+		temp = 0;
+		if (ret != i - 1 && check_fellow(&(data->philo[i - 1]), &temp, time_i))
+			return (-1);
+		if (temp != 0)
+			return (must_wait1(data, i));
+		if (ret != i + 1 && check_fellow(&(data->philo[i + 1]), &temp, time_i))
+			return (-1);
+		if (temp != 0)
+			return (must_wait1(data, i));
+		return (must_wait(data, ret - 1, &ret, i));
 	}
-	else
-	{
-		if (check_fellow(&data->philo[i + 1], &temp, &ret))
-			return (-1);
-	}
-	if (ret == 0)
-	{
-		if (phtread_mutex_lock(&(data->philo[i].shall_eat_m)))
-			return (-1);
-		data->philo[i].shall_eat = 1;
-		if (phtread_mutex_unlock(&(data->philo[i].shall_eat_m)))
-			return (-1);
-	}
-	else
-	{
-		if (must_wait(data->philo[i], ret, temp))
-			return (-1);
-	}	
+	if (pthread_mutex_lock(&(data->philo[i].shall_eat_m)))
+		return (-1);
+	data->philo[i].shall_eat = 1;
+	if (pthread_mutex_unlock(&(data->philo[i].shall_eat_m)))
+		return (-1);
 	return (0);
 }
 
@@ -351,7 +422,8 @@ int	check_alive(t_data *data)
 
 	i = 0;
 	while (7)
-	{	if (get_time(&time, &(data->b_time)) == -1)
+	{
+		if (get_time(&time, &(data->b_time)) == -1)
 			return (-1);
 		if (pthread_mutex_lock(&(data->philo[i].time_m)))
 			return (-1);
@@ -399,7 +471,7 @@ int	Philosophers(t_data *data)
 		i = 0;
 		while (i < data->nb_p)
 		{
-			(if pthread_join(data->philo[i].thread, NULL))
+			if (pthread_join(data->philo[i].thread, NULL))
 				return (-1);
 			i++;
 		}

@@ -43,5 +43,7 @@ int	main(int ac, char **av)
 	if (set_arg(&data, av) == -1)
 		return (-1);
 	Philosophers(&data);
-	ft_return(1, &data);
+	if (ft_return(1, &data))
+		return (-1);
+	return (0);
 }

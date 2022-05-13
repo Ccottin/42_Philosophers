@@ -13,19 +13,33 @@
 
 #include "../philosophers.h"
 
-void	free_all(t_data *data)
+int	free_all(t_data *data)
 {
 	unsigned int	i;
+
+	i = 0;
 	while (i < data->nb_p)
 	{
-		pthread_mutex_destroy(&(data->philo[i].fork_m));
+		if (pthread_mutex_destroy(&(data->philo[i].fork_m)))
+			return (-1);
+		if (pthread_mutex_destroy(&(data->philo[i].shall_eat_m)))
+			return (-1);
+		if (pthread_mutex_destroy(&(data->philo[i].politely_wait_m)))
+			return (-1);
+		if (pthread_mutex_destroy(&(data->philo[i].life)))
+			return (-1);
+		if (pthread_mutex_destroy(&(data->philo[i].time_m)))
+			return (-1);
 		i++;
 	}
-	pthread_mutex_destroy(data->printf);
-	pthread_mutex_destroy(data->l_data);
+	if (pthread_mutex_destroy(data->printf))
+		return (-1);
+	if (pthread_mutex_destroy(data->l_data))
+		return (-1);
 	free(data->printf);
 	free(data->l_data);
 	free(data->philo);
+	return (0);
 }
 
 int	ft_return(int mark, t_data *data)
@@ -36,7 +50,10 @@ int	ft_return(int mark, t_data *data)
 		return (0);
 	}
 	if (mark == 1)
-		free_all(data);
+	{
+		if (free_all(data))
+			return (-1);
+	}
 	if (mark == -1)
 	{
 		write(1, "An error has occured.\n", 22);
