@@ -89,6 +89,11 @@ int	eat_last(t_philo *philo)
 		return (-1);
 	if (take_fork(philo, 0) == -1)
 		return (-1);
+	if (pthread_mutex_lock(&(philo->shall_eat_m)))
+		return (-1);
+	philo->shall_eat = 0;
+	if (pthread_mutex_unlock(&(philo->shall_eat_m)))
+		return (-1);
 	return (0);
 }
 
@@ -114,6 +119,11 @@ int	eat(t_philo *philo)
 	if (take_fork(philo, 0) == -1)
 		return (-1);
 	if (take_fork_1(philo, 0) == -1)
+		return (-1);		
+	if (pthread_mutex_lock(&(philo->shall_eat_m)))
+		return (-1);
+	philo->shall_eat = 0;
+	if (pthread_mutex_unlock(&(philo->shall_eat_m)))
 		return (-1);
 	return (0);
 }
@@ -206,7 +216,6 @@ void	init_philo(unsigned int nb, t_data *data)
 {
 	t_philo	philo;
 
-	get_time(&(data->b_time), NULL);
 	philo.nb = nb + 1;
 	philo.t_t_d = data->t_t_d;
 	philo.t_t_e = data->t_t_e;
@@ -236,7 +245,7 @@ void	init_philo(unsigned int nb, t_data *data)
 		philo.fork1_m = &(data->philo[nb + 1].fork_m);
 	}
 	philo.b_time = data->b_time;
-	get_time(&philo.p_time, &(data->b_time));
+	get_time((&philo.p_time), &(data->b_time));
 	pthread_mutex_lock(data->l_data);
 	data->philo[nb] = philo;
 	pthread_mutex_unlock(data->l_data);
@@ -334,8 +343,68 @@ int	must_wait1(t_data *data, unsigned int i)
 	if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
 		return (-1);
 	return (0);
-
 }
+
+int	check_no_one(t_data *data, unsigned int i, size_t *temp)
+{
+	unsigned int	jpex;
+
+	if (i == 0)
+	{
+		if (pthread_mutex_lock(&(data->philo[data->nb_p - 1].shall_eat_m)))
+			return (-1);
+		jpex = data->philo[data->nb_p - 1].shall_eat;
+		if (pthread_mutex_unlock(&(data->philo[data->nb_p - 1].shall_eat_m)))
+			return (-1);
+	}
+	else
+	{
+		if (pthread_mutex_lock(&(data->philo[i - 1].shall_eat_m)))
+			return (-1);
+		jpex = data->philo[i - 1].shall_eat;
+		if (pthread_mutex_unlock(&(data->philo[i - 1].shall_eat_m)))
+			return (-1);
+	}
+//	printf("jpex = %u, i = %u\n", jpex, i);
+	if (jpex == 1)
+		*temp = 1;
+	*temp = 0;
+	return (0);
+}
+
+int	philo_can_eat(t_data *data, unsigned int i, size_t time_i)
+{	
+	size_t	temp;
+	int	ret;
+
+	check_no_one(data, i, &temp);
+	if (temp == 1)
+		return (must_wait1(data, i));
+	if (i == data->nb_p - 1)
+		ret = get_philo_time(&(data->philo[0]), &temp);
+	else
+		ret = get_philo_time(&(data->philo[i + 1]), &temp);
+	if (ret)
+		return (-1);
+//	printf("%lu, %lu\n", temp, time_i);
+	if (temp < time_i)
+		return (must_wait1(data, i));
+	if (i == 0)
+		ret = get_philo_time(&(data->philo[data->nb_p -1]), &temp);
+	else
+		ret = get_philo_time(&(data->philo[i - 1]), &temp);
+	if (ret)
+		return (-1);
+	if (temp < time_i)
+		return (must_wait1(data, i));
+	if (pthread_mutex_lock(&(data->philo[i].shall_eat_m)))
+		return (-1);
+	data->philo[i].shall_eat = 1;
+	if (pthread_mutex_unlock(&(data->philo[i].shall_eat_m)))
+		return (-1);
+	return (0);
+}
+
 int	nagging_philo1(t_data *data, unsigned int i, size_t ret, size_t time_i)
 {
 	size_t	temp;
@@ -372,10 +441,6 @@ int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
 	return (must_wait(data, ret - 1, &ret, i));
 }
 
-int	philo_can_eat(t_data *data, unsigned int i, size_ti)
-{
-	
-}
 
 int	spaghettis(t_data *data, unsigned int i)
 {
@@ -387,10 +452,10 @@ int	spaghettis(t_data *data, unsigned int i)
 		return (-1);
 	if (ret == data->philo[i].nb)
 		return (0);
+	if (get_philo_time(&(data->philo[i]), &time_i))
+		return (-1);
 	if (ret != 0)
 	{
-		if (get_philo_time(&(data->philo[i]), &time_i))
-			return (-1);
 		if (i == 0)
 			return (nagging_philo(data, i, ret, time_i));
 		if (i == data->nb_p - 1)
@@ -407,11 +472,7 @@ int	spaghettis(t_data *data, unsigned int i)
 			return (must_wait1(data, i));
 		return (must_wait(data, ret - 1, &ret, i));
 	}
-	if (pthread_mutex_lock(&(data->philo[i].shall_eat_m)))
-		return (-1);
-	data->philo[i].shall_eat = 1;
-	if (pthread_mutex_unlock(&(data->philo[i].shall_eat_m)))
-		return (-1);
+	philo_can_eat(data, i, time_i);
 	return (0);
 }
 
@@ -452,6 +513,7 @@ int	Philosophers(t_data *data)
 	unsigned int	i;
 
 	i = 0;
+	get_time(&(data->b_time), NULL);
 	while (i < data->nb_p)
 	{
 		init_philo(i, data);
