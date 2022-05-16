@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/11 20:17:57 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/16 14:29:35 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -254,6 +254,31 @@ void	init_philo(unsigned int nb, t_data *data)
 	pthread_mutex_unlock(data->l_data);
 }
 
+int	set_fork(t_data *data)
+{
+	unsigned int i;
+
+	i = 0;
+	while (i < data->nb_p)
+	{
+		if (data->philo[i].nb % 2 == 0)
+		{
+			if (pthread_mutex_lock(data->philo[i].fork_m))
+				return (-1);
+			data->philo[i].fork = data->philo[i].nb;
+			if (pthread_mutex_unlock(data->philo[i].fork_m))
+				return (-1);
+			if (pthread_mutex_lock(data->philo[i].fork1_m))
+				return (-1);
+			data->philo[i]->fork1 = data->philo[i].nb;
+			if (pthread_mutex_unlock(data->philo[i].fork1_m))
+				return (-1);
+		}
+		i++;
+	}
+	return (0);
+}
+
 int	kill_em_all(t_data *data)
 {
 	unsigned int	i;
@@ -271,24 +296,6 @@ int	kill_em_all(t_data *data)
 	return (0);
 }
 
-int	check_fork(t_data *data, unsigned int i, size_t *ret)
-//si check fork revient 0 c libre sinon c id du philo qui mange
-{
-	if (pthread_mutex_lock(&(data->philo[i].fork_m)))
-		return (-1);
-	*ret = data->philo[i].fork;
-	if (pthread_mutex_unlock(&(data->philo[i].fork_m)))
-		return (-1);
-	if (*ret != 0)
-		return (0);
-	if (pthread_mutex_lock(data->philo[i].fork1_m))
-		return (-1);
-	*ret = *(data->philo[i].fork1);
-	if (pthread_mutex_unlock(data->philo[i].fork1_m))
-		return (-1);
-	return (0);
-}
-
 int	get_philo_time(t_philo *philo, size_t *ret)
 {
 	if (pthread_mutex_lock(&(philo->time_m)))
@@ -296,47 +303,6 @@ int	get_philo_time(t_philo *philo, size_t *ret)
 	*ret = philo->p_time;
 	if (pthread_mutex_unlock(&(philo->time_m)))
 		return (-1);
-	return (0);
-}
-
-int	must_wait(t_data *data, unsigned int philo_eating, size_t *ret, unsigned int i)
-{
-	size_t	time;
-
-	if (pthread_mutex_lock(&(data->philo[philo_eating].time_m)))
-		return (-1);
-	*ret = data->philo[philo_eating].p_time;
-	if (pthread_mutex_unlock(&(data->philo[philo_eating].time_m)))
-		return (-1);
-	if (get_time(&time, &(data->b_time)))
-		return (-1);
-	if (*ret < time)
-	{
-		if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
-			return (-1);
-		data->philo[i].politely_wait = 0;
-		if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
-			return (-1);
-	}
-	else
-	{
-		if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
-			return (-1);
-		data->philo[i].politely_wait = *ret - time;
-		if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
-			return (-1);
-	}
-	return (0);
-}
-
-int	check_fellow(t_philo *philo, int *temp, size_t time_i)
-{//retourne moins un si philo + 1 doit attendre
-	size_t	retemp;
-
-	if (get_philo_time(philo, &retemp))
-		return (-1);
-	if (retemp > time_i)
-		*temp = -1;
 	return (0);
 }
 
@@ -350,137 +316,103 @@ int	must_wait1(t_data *data, unsigned int i)
 	return (0);
 }
 
-int	check_no_one(t_data *data, unsigned int i, size_t *temp)
-{
-	unsigned int	jpex;
-
-	if (i == 0)
-	{
-		if (pthread_mutex_lock(&(data->philo[data->nb_p - 1].shall_eat_m)))
-			return (-1);
-		jpex = data->philo[data->nb_p - 1].shall_eat;
-		if (pthread_mutex_unlock(&(data->philo[data->nb_p - 1].shall_eat_m)))
-			return (-1);
-	}
-	else
-	{
-		if (pthread_mutex_lock(&(data->philo[i - 1].shall_eat_m)))
-			return (-1);
-		jpex = data->philo[i - 1].shall_eat;
-		if (pthread_mutex_unlock(&(data->philo[i - 1].shall_eat_m)))
-			return (-1);
-	}
-//	printf("jpex = %u, i = %u\n", jpex, i);
-	if (jpex == 1)
-		*temp = 1;
-	else
-		*temp = 0;
-//	printf("%u, shall eat = %lu et avant = %u\n", data->philo[i].nb, *temp, jpex);
-	return (0);
-}
-
-int	philo_can_eat(t_data *data, unsigned int i, size_t time_i)
+int	philo_can_eat(t_data *data, unsigned int i)
 {	
-	size_t	temp;
-	int	ret;
-
-	check_no_one(data, i, &temp);
-	if (temp == 1)
-		return (must_wait1(data, i));
-	if (i == data->nb_p - 1)
-		ret = get_philo_time(&(data->philo[0]), &temp);
-	else
-		ret = get_philo_time(&(data->philo[i + 1]), &temp);
-	if (ret)
+	if (pthread_mutex_lock(&(data->philo[i].fork_m)))
 		return (-1);
-//	printf("%lu, %lu\n", temp, time_i);
-	if (temp < time_i)
-		return (must_wait1(data, i));
-	if (i == 0)
-		ret = get_philo_time(&(data->philo[data->nb_p -1]), &temp);
-	else
-		ret = get_philo_time(&(data->philo[i - 1]), &temp);
-	if (ret)
+	data->philo[i].fork = data->philo[i].nb;
+	if (pthread_mutex_unlock(&(data->philo[i].fork_m)))
 		return (-1);
-	if (temp < time_i)
-		return (must_wait1(data, i));
-	if (pthread_mutex_lock(&(data->philo[i].shall_eat_m)))
+	if (pthread_mutex_lock(data->philo[i].fork1_m))
 		return (-1);
-	data->philo[i].shall_eat = 1;
-	if (pthread_mutex_unlock(&(data->philo[i].shall_eat_m)))
-		return (-1);
+	*(data->philo[i].fork1) = data->philo[i].nb;
+	if (pthread_mutex_unlock(data->philo[i].fork1_m))
 	return (0);
 }
 
 int	nagging_philo1(t_data *data, unsigned int i, size_t ret, size_t time_i)
 {
-	int	temp;
+	if (check_fellow(&(data->philo[i - 1]), time_i, &ret))
+		return (-1);
+	if (ret)
+		return (must_wait1(data, i));
+	if (check_fellow(&(data->philo[0]), time_i, &ret))
+		return (-1);
+	if (ret)
+		return (must_wait1(data, i));
+	philo_can_eat(data, i);
+	return (0);
 
-	temp = 0;
-	if (ret != i - 1 && check_fellow(&(data->philo[i - 1]), &temp, time_i))
-		return (-1);
-	if (temp != -1)
-		return (must_wait1(data, i));
-	if (ret != 1 && check_fellow(&(data->philo[0]), &temp, time_i))
-		return (-1);
-	if (temp != -1)
-		return (must_wait1(data, i));
-	if (ret == 1)
-		return (must_wait(data, 0, &ret, i));
-	return (must_wait(data, ret - 1, &ret, i));
 }
 
 int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
 {
-	int	temp;
-
-	temp = 0;
-	if (ret != data->nb_p && check_fellow(&(data->philo[data->nb_p - 1]), &temp, time_i))
+	if (check_fellow(&(data->philo[data->nb_p - 1]), time_i, &ret))
 		return (-1);
-	if (temp != -1)
+	if (ret)
 		return (must_wait1(data, i));
-	if (ret != i + 1 && check_fellow(&(data->philo[i + 1]), &temp, time_i))
-			return (-1);
-	if (temp != -1)
+	if (check_fellow(&(data->philo[i + 1]), time_i, &ret))
+		return (-1);
+	if (ret)
 		return (must_wait1(data, i));
-	if (ret == data->nb_p)
-		return (must_wait(data, data->nb_p - 1, &ret, i));
-	return (must_wait(data, ret - 1, &ret, i));
+	philo_can_eat(data, i);
+	return (0);
 }
 
+int	check_fork(t_data *data, unsigned int i, int *ret)
+{
+	if (pthread_mutex_lock(&(data->philo[i].fork_m)))
+		return (-1);
+	*ret = data->philo[i].fork;
+	if (pthread_mutex_unlock(&(data->philo[i].fork_m)))
+		return (-1);
+	if (*ret != 0)
+		return (0);
+	if (pthread_mutex_lock(data->philo[i].fork1_m))
+		return (-1);
+	*ret = *(data->philo[i].fork1);
+	if (pthread_mutex_unlock(data->philo[i].fork1_m))
+	return (0);
+}
+
+int	check_fellow(t_philo *philo, size_t time_i, size_t *ret)
+{
+	size_t	time_p;
+
+	if (get_philo_time(philo, &time_p))
+		return (-1);
+	if (time_p <= time_i)
+		*ret = 1;
+	else
+		*ret = 0;
+	return (0);
+}
 
 int	spaghettis(t_data *data, unsigned int i)
 {
-	int	temp;
 	size_t	ret;
 	size_t	time_i;
 
-	if (check_fork(data, i, &ret))
+	if (check_fork(data, i, &ret) == -1)
 		return (-1);
-//	printf("i = %u , fourchette = %ld\n", i + 1, ret);
-	if (ret == data->philo[i].nb)
+	if (ret != 0)
 		return (0);
 	if (get_philo_time(&(data->philo[i]), &time_i))
 		return (-1);
-	if (ret != 0)
-	{
-		if (i == 0)
-			return (nagging_philo(data, i, ret, time_i));
-		if (i == data->nb_p - 1)
-			return (nagging_philo1(data, i, ret, time_i));
+	if (i == 0)
+		return (nagging_philo(data, i, ret, time_i));
+	if (i == data->nb_p - 1)
+		return (nagging_philo1(data, i, ret, time_i));
 		/*on peut surement opti en enleveant la premier condition vu qu'ils sont déjà check au philo précédent*/
-		temp = 0;
-		if (ret != i - 1 && check_fellow(&(data->philo[i - 1]), &temp, time_i))
-			return (-1);
-		if (temp != -1)
-			return (must_wait1(data, i));
-		if (ret != i + 1 && check_fellow(&(data->philo[i + 1]), &temp, time_i))
-			return (-1);
-		if (temp != -1)
-			return (must_wait1(data, i));
-		return (must_wait(data, ret - 1, &ret, i));
-	}
-	philo_can_eat(data, i, time_i);
+	if (check_fellow(&(data->philo[i - 1]), time_i, &ret))
+		return (-1);
+	if (ret)
+		return (must_wait1(data, i));
+	if (check_fellow(&(data->philo[i + 1]), time_i, &ret))
+		return (-1);
+	if (ret)
+		return (must_wait1(data, i));
+	philo_can_eat(data, i);
 	return (0);
 }
 
@@ -527,6 +459,7 @@ int	Philosophers(t_data *data)
 		init_philo(i, data);
 		i++;
 	}
+	set_fork(data);
 	i = 0;
 	while (i < data->nb_p)
 	{
