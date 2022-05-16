@@ -16,6 +16,8 @@ int	ft_print(t_philo *philo, char *str)
 {
 	size_t	time;
 
+	if (get_time(&time, &(philo->b_time)) == -1)
+		return (-1);
 	if (pthread_mutex_lock(&(philo->life)))
 		return (-1);
 	if (!philo->is_alive && ft_strcmp("has died", str))
@@ -25,8 +27,6 @@ int	ft_print(t_philo *philo, char *str)
 		return (0);
 	}
 	if (pthread_mutex_unlock(&(philo->life)))
-		return (-1);
-	if (get_time(&time, &(philo->b_time)) == -1)
 		return (-1);
 	if (pthread_mutex_lock(philo->printf))
 		return (-1);
@@ -38,6 +38,8 @@ int	ft_print(t_philo *philo, char *str)
 
 int	take_fork_1(t_philo *philo, unsigned int v)
 {
+	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
+		return (-1);
 	if (pthread_mutex_lock(philo->fork1_m))
 		return (-1);
 	if (v == 0)
@@ -46,13 +48,13 @@ int	take_fork_1(t_philo *philo, unsigned int v)
 		*philo->fork1 = philo->nb;
 	if (pthread_mutex_unlock(philo->fork1_m))
 		return (-1);
-	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
-		return (-1);
 	return (0);
 }
 
 int	take_fork(t_philo *philo, unsigned int v)
 {
+	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
+		return (-1);
 	if (pthread_mutex_lock(&(philo->fork_m)))
 		return (-1);
 	if (v == 0)
@@ -60,8 +62,6 @@ int	take_fork(t_philo *philo, unsigned int v)
 	if (v != 0)
 		philo->fork = philo->nb;
 	if (pthread_mutex_unlock(&(philo->fork_m)))
-		return (-1);
-	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
 		return (-1);
 	return (0);
 }
@@ -163,6 +163,8 @@ void	*alive(void *ptr)
 			return ((void*)-1);
 		usleep(philo->t_t_e * 1000);
 	}
+	else
+		meal = 1;
 	while (life)
 	{
 		still_breathing(philo, &life);
@@ -182,6 +184,7 @@ void	*alive(void *ptr)
 				return ((void*)-1);
 			still_breathing(philo, &life);
 		}
+	//	printf("philo = %u, sheat = %u\n", philo->nb, philo->shall_eat);
 		if (life && philo->nb == philo->nb_p)
 			ret = eat_last(philo);
 		else if (life && philo->nb != philo->nb_p)
@@ -326,12 +329,14 @@ int	must_wait(t_data *data, unsigned int philo_eating, size_t *ret, unsigned int
 	return (0);
 }
 
-int	check_fellow(t_philo *philo, size_t *temp, size_t time_i)
-{//retourne zero si philo + 1 doit attendre
-	if (get_philo_time(philo, temp))
+int	check_fellow(t_philo *philo, int *temp, size_t time_i)
+{//retourne moins un si philo + 1 doit attendre
+	size_t	retemp;
+
+	if (get_philo_time(philo, &retemp))
 		return (-1);
-	if (*temp > time_i)
-		*temp = 0;
+	if (retemp > time_i)
+		*temp = -1;
 	return (0);
 }
 
@@ -368,7 +373,9 @@ int	check_no_one(t_data *data, unsigned int i, size_t *temp)
 //	printf("jpex = %u, i = %u\n", jpex, i);
 	if (jpex == 1)
 		*temp = 1;
-	*temp = 0;
+	else
+		*temp = 0;
+//	printf("%u, shall eat = %lu et avant = %u\n", data->philo[i].nb, *temp, jpex);
 	return (0);
 }
 
@@ -407,16 +414,16 @@ int	philo_can_eat(t_data *data, unsigned int i, size_t time_i)
 
 int	nagging_philo1(t_data *data, unsigned int i, size_t ret, size_t time_i)
 {
-	size_t	temp;
+	int	temp;
 
 	temp = 0;
 	if (ret != i - 1 && check_fellow(&(data->philo[i - 1]), &temp, time_i))
 		return (-1);
-	if (temp != 0)
+	if (temp != -1)
 		return (must_wait1(data, i));
 	if (ret != 1 && check_fellow(&(data->philo[0]), &temp, time_i))
 		return (-1);
-	if (temp != 0)
+	if (temp != -1)
 		return (must_wait1(data, i));
 	if (ret == 1)
 		return (must_wait(data, 0, &ret, i));
@@ -425,16 +432,16 @@ int	nagging_philo1(t_data *data, unsigned int i, size_t ret, size_t time_i)
 
 int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
 {
-	size_t	temp;
+	int	temp;
 
 	temp = 0;
 	if (ret != data->nb_p && check_fellow(&(data->philo[data->nb_p - 1]), &temp, time_i))
 		return (-1);
-	if (temp != 0)
+	if (temp != -1)
 		return (must_wait1(data, i));
 	if (ret != i + 1 && check_fellow(&(data->philo[i + 1]), &temp, time_i))
 			return (-1);
-	if (temp != 0)
+	if (temp != -1)
 		return (must_wait1(data, i));
 	if (ret == data->nb_p)
 		return (must_wait(data, data->nb_p - 1, &ret, i));
@@ -444,12 +451,13 @@ int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
 
 int	spaghettis(t_data *data, unsigned int i)
 {
-	size_t	temp;
+	int	temp;
 	size_t	ret;
 	size_t	time_i;
 
 	if (check_fork(data, i, &ret))
 		return (-1);
+//	printf("i = %u , fourchette = %ld\n", i + 1, ret);
 	if (ret == data->philo[i].nb)
 		return (0);
 	if (get_philo_time(&(data->philo[i]), &time_i))
@@ -464,11 +472,11 @@ int	spaghettis(t_data *data, unsigned int i)
 		temp = 0;
 		if (ret != i - 1 && check_fellow(&(data->philo[i - 1]), &temp, time_i))
 			return (-1);
-		if (temp != 0)
+		if (temp != -1)
 			return (must_wait1(data, i));
 		if (ret != i + 1 && check_fellow(&(data->philo[i + 1]), &temp, time_i))
 			return (-1);
-		if (temp != 0)
+		if (temp != -1)
 			return (must_wait1(data, i));
 		return (must_wait(data, ret - 1, &ret, i));
 	}
