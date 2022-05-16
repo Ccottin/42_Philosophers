@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/16 14:29:35 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/16 17:27:39 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,14 +40,14 @@ int	take_fork_1(t_philo *philo, unsigned int v)
 {
 	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
 		return (-1);
-	if (pthread_mutex_lock(philo->fork1_m))
-		return (-1);
 	if (v == 0)
-		*philo->fork1 = 0;
-	if (v != 0)
-		*philo->fork1 = philo->nb;
-	if (pthread_mutex_unlock(philo->fork1_m))
-		return (-1);
+	{
+		if (pthread_mutex_lock(philo->fork1_m))
+			return (-1);
+		*(philo->fork1) = 0;
+		if (pthread_mutex_unlock(philo->fork1_m))
+			return (-1);
+	}
 	return (0);
 }
 
@@ -55,14 +55,14 @@ int	take_fork(t_philo *philo, unsigned int v)
 {
 	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
 		return (-1);
-	if (pthread_mutex_lock(&(philo->fork_m)))
-		return (-1);
 	if (v == 0)
+	{
+		if (pthread_mutex_lock(&(philo->fork_m)))
+			return (-1);
 		philo->fork = 0;
-	if (v != 0)
-		philo->fork = philo->nb;
-	if (pthread_mutex_unlock(&(philo->fork_m)))
-		return (-1);
+		if (pthread_mutex_unlock(&(philo->fork_m)))
+			return (-1);
+	}
 	return (0);
 }
 
@@ -89,11 +89,6 @@ int	eat_last(t_philo *philo)
 		return (-1);
 	if (take_fork(philo, 0) == -1)
 		return (-1);
-	if (pthread_mutex_lock(&(philo->shall_eat_m)))
-		return (-1);
-	philo->shall_eat = 0;
-	if (pthread_mutex_unlock(&(philo->shall_eat_m)))
-		return (-1);
 	return (0);
 }
 
@@ -119,11 +114,6 @@ int	eat(t_philo *philo)
 	if (take_fork(philo, 0) == -1)
 		return (-1);
 	if (take_fork_1(philo, 0) == -1)
-		return (-1);		
-	if (pthread_mutex_lock(&(philo->shall_eat_m)))
-		return (-1);
-	philo->shall_eat = 0;
-	if (pthread_mutex_unlock(&(philo->shall_eat_m)))
 		return (-1);
 	return (0);
 }
@@ -147,50 +137,56 @@ int	still_breathing(t_philo *philo, int *life)
 	return (0);
 }
 
+int	check_can_eat(t_philo *philo, int *ret)
+{
+	if (pthread_mutex_lock(&(philo->fork_m)))
+		return (-1);
+	*ret = philo->fork;
+	if (pthread_mutex_unlock(&(philo->fork_m)))
+		return (-1);
+	return (0);
+}
+
 void	*alive(void *ptr)
 {
 	t_philo	*philo;
 	int	ret;
 	int	life;
-	size_t	meal;
-	
+//	size_t	check;
+
 	philo = (t_philo*)ptr;
 	life = 1;
-	meal = 0;
 	if (philo->nb % 2 != 0)
 	{
 		if (life && ft_print(philo, "is thinking") == -1)
 			return ((void*)-1);
 		usleep(philo->t_t_e * 1000);
 	}
-	else
-		meal = 1;
 	while (life)
 	{
 		still_breathing(philo, &life);
-		while (life && meal == 0)
+		check_can_eat(philo, &ret);
+		while (life && (unsigned int)ret != philo->nb)
 		{	
 			if (pthread_mutex_lock(&(philo->politely_wait_m)))
 				return ((void*)-1);
-			meal = philo->politely_wait;
+		//	check = philo->politely_wait;
+		//	philo->politely_wait = 0;
 			if (pthread_mutex_unlock(&(philo->politely_wait_m)))
 				return ((void*)-1);
-			usleep(meal);
+		//	printf("wait = %lu\n", check);
+			usleep(philo->t_t_e);
 			still_breathing(philo, &life);
-			if (pthread_mutex_lock(&(philo->shall_eat_m)))
-				return ((void*)-1);
-			meal = philo->shall_eat;
-			if (pthread_mutex_unlock(&(philo->shall_eat_m)))
-				return ((void*)-1);
-			still_breathing(philo, &life);
+			check_can_eat(philo, &ret);
 		}
-	//	printf("philo = %u, sheat = %u\n", philo->nb, philo->shall_eat);
+		printf(" in philo = %u, fourchette  %u\n", philo->nb, philo->fork);
 		if (life && philo->nb == philo->nb_p)
 			ret = eat_last(philo);
 		else if (life && philo->nb != philo->nb_p)
 			ret = eat(philo);
 		if (ret == -1)
 			return ((void*)-1);
+		printf(" out philo = %u, fourchette  %u\n", philo->nb, philo->fork);
 		still_breathing(philo, &ret);
 		if (life && f_sleep(philo) == -1)
 			return ((void*)-1);
@@ -226,13 +222,8 @@ void	init_philo(unsigned int nb, t_data *data)
 	philo.nb_p = data->nb_p;
 	philo.printf = data->printf;
 	philo.is_alive = 1;
-	if (nb % 2 == 0)
-		philo.shall_eat = 1;
-	else
-		philo.shall_eat = 0;
 	philo.politely_wait = 0;
 	philo.fork = 0;
-	pthread_mutex_init(&(philo.shall_eat_m), NULL);
 	pthread_mutex_init(&(philo.politely_wait_m), NULL);
 	pthread_mutex_init(&(philo.fork_m), NULL);
 	pthread_mutex_init(&(philo.life), NULL);
@@ -263,14 +254,14 @@ int	set_fork(t_data *data)
 	{
 		if (data->philo[i].nb % 2 == 0)
 		{
-			if (pthread_mutex_lock(data->philo[i].fork_m))
+			if (pthread_mutex_lock(&(data->philo[i].fork_m)))
 				return (-1);
 			data->philo[i].fork = data->philo[i].nb;
-			if (pthread_mutex_unlock(data->philo[i].fork_m))
+			if (pthread_mutex_unlock(&(data->philo[i].fork_m)))
 				return (-1);
 			if (pthread_mutex_lock(data->philo[i].fork1_m))
 				return (-1);
-			data->philo[i]->fork1 = data->philo[i].nb;
+			*(data->philo[i].fork1) = data->philo[i].nb;
 			if (pthread_mutex_unlock(data->philo[i].fork1_m))
 				return (-1);
 		}
@@ -327,6 +318,20 @@ int	philo_can_eat(t_data *data, unsigned int i)
 		return (-1);
 	*(data->philo[i].fork1) = data->philo[i].nb;
 	if (pthread_mutex_unlock(data->philo[i].fork1_m))
+		return (-1);
+	return (0);
+}
+
+int	check_fellow(t_philo *philo, size_t time_i, size_t *ret)
+{
+	size_t	time_p;
+
+	if (get_philo_time(philo, &time_p))
+		return (-1);
+	if (time_p < time_i)
+		*ret = 1;
+	else
+		*ret = 0;
 	return (0);
 }
 
@@ -359,7 +364,7 @@ int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
 	return (0);
 }
 
-int	check_fork(t_data *data, unsigned int i, int *ret)
+int	check_fork(t_data *data, unsigned int i, size_t *ret)
 {
 	if (pthread_mutex_lock(&(data->philo[i].fork_m)))
 		return (-1);
@@ -372,19 +377,7 @@ int	check_fork(t_data *data, unsigned int i, int *ret)
 		return (-1);
 	*ret = *(data->philo[i].fork1);
 	if (pthread_mutex_unlock(data->philo[i].fork1_m))
-	return (0);
-}
-
-int	check_fellow(t_philo *philo, size_t time_i, size_t *ret)
-{
-	size_t	time_p;
-
-	if (get_philo_time(philo, &time_p))
 		return (-1);
-	if (time_p <= time_i)
-		*ret = 1;
-	else
-		*ret = 0;
 	return (0);
 }
 

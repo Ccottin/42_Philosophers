@@ -19,11 +19,9 @@ typedef struct s_philo {
 	unsigned int	nb_p;
 	unsigned int	fork;
 	unsigned int	*fork1;
-	unsigned int	shall_eat;
 	size_t		politely_wait;
 	pthread_t	thread;
 	pthread_mutex_t	politely_wait_m;
-	pthread_mutex_t	shall_eat_m;
 	pthread_mutex_t	fork_m;
 	pthread_mutex_t	life;
 	pthread_mutex_t	time_m;

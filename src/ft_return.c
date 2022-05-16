@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/11 14:45:26 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/16 16:03:38 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,6 @@ int	free_all(t_data *data)
 	while (i < data->nb_p)
 	{
 		if (pthread_mutex_destroy(&(data->philo[i].fork_m)))
-			return (-1);
-		if (pthread_mutex_destroy(&(data->philo[i].shall_eat_m)))
 			return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].politely_wait_m)))
 			return (-1);
