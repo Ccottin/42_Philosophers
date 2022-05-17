@@ -12,9 +12,11 @@ typedef struct s_philo {
 	size_t		p_time;
 	size_t		b_time;
 	unsigned int	nb;
-	unsigned int	is_alive;
+	unsigned int	nb_eat;
+	unsigned char	is_alive;
 	unsigned int	t_t_d;
 	unsigned int	t_t_e;
+	unsigned int	n_t_e;
 	unsigned int	t_t_s;
 	unsigned int	nb_p;
 	unsigned int	fork;
@@ -23,6 +25,7 @@ typedef struct s_philo {
 	pthread_t	thread;
 	pthread_mutex_t	politely_wait_m;
 	pthread_mutex_t	fork_m;
+	pthread_mutex_t	nb_eat_m;
 	pthread_mutex_t	life;
 	pthread_mutex_t	time_m;
 	pthread_mutex_t	*fork1_m;
@@ -33,8 +36,10 @@ typedef struct s_data {
 	size_t		b_time;
 	unsigned int	t_t_d;
 	unsigned int	t_t_e;
+	unsigned int	n_t_e;
 	unsigned int	t_t_s;
 	unsigned int	nb_p;
+	char		ac;
 	t_philo		*philo;
 	pthread_mutex_t	*printf;
 	pthread_mutex_t	*l_data;
