@@ -6,18 +6,27 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/17 19:34:20 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/17 22:08:03 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../philosophers.h"
 
+char	*get_write(t_philo *philo, char *str, size_t time)
+{
+	char	*s2;
+
+	s2 = ft_concat(ft_itoa(time), ft_itoa(philo->nb), str);
+	if (!s2)
+		return (NULL);
+	return (s2);
+}
+
 int	ft_print(t_philo *philo, char *str)
 {
 	size_t	time;
+	char	*to_write;
 
-	if (get_time(&time, &(philo->b_time)) == -1)
-		return (-1);
 	if (pthread_mutex_lock(&(philo->life)))
 		return (-1);
 	if (!philo->is_alive && ft_strcmp("has died", str))
@@ -28,11 +37,18 @@ int	ft_print(t_philo *philo, char *str)
 	}
 	if (pthread_mutex_unlock(&(philo->life)))
 		return (-1);
+	if (get_time(&time, &(philo->b_time)) == -1)
+		return (-1);
+	to_write = get_write(philo, str, time);
+	if (!to_write)
+		return (-1);
+	time = ft_strlen(to_write);
 	if (pthread_mutex_lock(philo->printf))
 		return (-1);
-	printf("%lu %u %s\n", time, philo->nb, str);
+	write(1, to_write, time);
 	if (pthread_mutex_unlock(philo->printf))
 		return (-1);
+	free(to_write);
 	return (0);
 }
 
@@ -415,17 +431,14 @@ int	check_fork(t_data *data, unsigned int i, size_t *ret)
 	return (0);
 }
 
-int	spaghettis(t_data *data, unsigned int i)
+int	spaghettis(t_data *data, unsigned int i, size_t time_i)
 {
 	size_t	ret;
-	size_t	time_i;
 
 	if (check_fork(data, i, &ret) == -1)
 		return (-1);
 	if (ret != 0)
 		return (must_wait(data, i, ret));
-	if (get_philo_time(&(data->philo[i]), &time_i))
-		return (-1);
 	if (i == 0)
 		return (nagging_philo(data, i, ret, time_i));
 	if (i == data->nb_p - 1)
@@ -471,10 +484,7 @@ int	check_alive(t_data *data)
 	{
 		if (get_time(&time, &(data->b_time)) == -1)
 			return (-1);
-		if (pthread_mutex_lock(&(data->philo[i].time_m)))
-			return (-1);
-		philo_time = data->philo[i].p_time;
-		if (pthread_mutex_unlock(&(data->philo[i].time_m)))
+		if (get_philo_time(&(data->philo[i]), &philo_time))
 			return (-1);
 		if (philo_time + data->t_t_d <= time)
 		{
@@ -484,7 +494,7 @@ int	check_alive(t_data *data)
 			ft_print(&(data->philo[i]), "has died");
 			return (0);
 		}
-		if (spaghettis(data, i))
+		if (spaghettis(data, i, philo_time))
 			return (-1);
 		if (data->n_t_e && check_nte(data, i, &check_meal))
 			return (-1);

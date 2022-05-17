@@ -45,11 +45,14 @@ typedef struct s_data {
 	pthread_mutex_t	*l_data;
 }		t_data;
 
+char		*ft_concat(char *s1, char *s2, char *s3);
+char		*ft_itoa(size_t nb);
 int		get_time(size_t *time, size_t *b_time);
 unsigned int	ft_atoi(char *nptr);
 int		ft_return(int mark, t_data *data);
 void		*ft_calloc(int nmem);
 int		Philosophers(t_data *data);
 int		ft_strcmp(char *s1, char *s2);
+int		ft_strlen(char *str);
 
 #endif

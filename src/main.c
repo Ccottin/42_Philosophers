@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:46:03 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/17 18:52:04 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/17 22:07:41 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,9 +22,11 @@ int	set_arg(t_data *data, char **av, int ac)
 	data->t_t_e = ft_atoi(av[3]);
 	data->t_t_s = ft_atoi(av[4]);
 	if (ac == 6)
+	{
 		data->n_t_e = ft_atoi(av[5]);
-	if (data->n_t_e == 0)
-		return (1);
+		if (data->n_t_e == 0)
+			return (1);
+	}
 	if (ac == 5)
 		data->n_t_e = 0;
 	philo = ft_calloc(sizeof(t_philo) * data->nb_p + 1);
