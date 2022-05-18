@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/17 22:08:03 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/18 17:09:06 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -492,6 +492,87 @@ int	check_alive(t_data *data)
 			kill_em_all(data);
 			usleep(1000);
 			ft_print(&(data->philo[i]), "has died");
+			if (pthread_mutex_lock(&(data->checker->j_m)))
+				return (-1);
+			data->checker->j = -1;
+			if (pthread_mutex_unlock(&(data->checker->j_m)))
+				return (-1);
+			return (0);
+		}
+		if (spaghettis(data, i, philo_time))
+			return (-1);
+		if (data->n_t_e && check_nte(data, i, &check_meal))
+			return (-1);
+		if (check_meal == data->nb_p)
+		{
+			kill_em_all(data);
+			return (0);
+		}
+		i++;
+		if (pthread_mutex_lock(&(data->checker->j_m)))
+			return (-1);
+		if (data->checker->j != -1)
+			data->checker->j = data->checker->j + 1;
+		else
+		{
+			if (pthread_mutex_unlock(&(data->checker->j_m)))
+				return (-1);
+			return (0);
+		}
+		if (pthread_mutex_unlock(&(data->checker->j_m)))
+			return (-1);
+		if (i == data->nb_p)
+			i = 0;
+	}
+	return (0);
+}
+
+int	init_checker(t_data *data)
+{
+	data->checker->data_bis->b_time = data->b_time;
+	data->checker->data_bis->t_t_d = data->t_t_d;
+	data->checker->data_bis->t_t_e = data->t_t_e;
+	data->checker->data_bis->t_t_s = data->t_t_s;
+	data->checker->data_bis->n_t_e = data->n_t_e;
+	data->checker->data_bis->nb_p = data->nb_p;
+	data->checker->data_bis->ac = data->ac;
+	data->checker->data_bis->philo = data->philo;
+	data->checker->data_bis->checker = NULL;
+	data->checker->data_bis->printf = data->printf;
+	data->checker->data_bis->l_data = NULL;
+	data->checker->j = data->nb_p / 2;
+	if (pthread_mutex_init(&(data->checker->j_m), NULL))
+		return (-1);
+	if (pthread_create(&(data->checker->checker_t), NULL, &second_checker, (void*) &(data->checker)))
+		return (-1);
+	return (0);
+}
+
+int	check_alive_2(t_data *data, t_checker *env)//modifiee
+{
+	size_t		time;
+	size_t		philo_time;
+	unsigned int	check_meal;
+	unsigned int	i;
+
+	check_meal = 0;
+	while (7)
+	{
+		if (pthread_mutex_lock(&(env->j_m)))
+			return (-1);
+		i = env->j;
+		if (pthread_mutex_unlock(&(env->j_m)))
+			return (-1);
+		if (get_time(&time, &(data->b_time)) == -1)
+			return (-1);
+		if (get_philo_time(&(data->philo[i]), &philo_time))
+			return (-1);
+		if (philo_time + data->t_t_d <= time)
+		{
+			ft_print(&(data->philo[i]), "timestamp");
+			kill_em_all(data);
+			usleep(1000);
+			ft_print(&(data->philo[i]), "has died");
 			return (0);
 		}
 		if (spaghettis(data, i, philo_time))
@@ -507,6 +588,16 @@ int	check_alive(t_data *data)
 		if (i == data->nb_p)
 			i = 0;
 	}
+	return (0);
+}
+
+void	*second_checker(void *ptr)
+{
+	t_checker	*env;
+
+	env = (t_checker*)ptr;
+	if (check_alive_2(env->data_bis, env))
+		return ((void*)-1);
 	return (0);
 }
 
@@ -529,17 +620,21 @@ int	Philosophers(t_data *data)
 			return(-1);
 		i++;
 	}
+	if (init_checker(data))
+		return (-1);
 	if (check_alive(data) == -1)
 		ft_return(-1, data);
 	else
 	{
 		i = 0;
-		while (i < data->nb_p)
+		while (i < data->nb_p)//protgees aussi tes joins
 		{
 			if (pthread_join(data->philo[i].thread, NULL))
 				return (-1);
 			i++;
 		}
+		if (pthread_join(data->checker->checker_t, NULL))
+			return (-1);
 	}
 	return (0);
 }

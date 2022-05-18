@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/17 18:39:13 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/18 15:18:48 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@ int	free_all(t_data *data)
 	free(data->printf);
 	free(data->l_data);
 	free(data->philo);
+	free(data->checker);
 	return (0);
 }
 
@@ -56,7 +57,8 @@ int	ft_return(int mark, t_data *data)
 	if (mark == -1)
 	{
 		write(1, "An error has occured.\n", 22);
-		free_all(data);
+		if (free_all(data))
+			return (-1);
 	}
 	return (0);
 }

@@ -30,8 +30,14 @@ typedef struct s_philo {
 	pthread_mutex_t	time_m;
 	pthread_mutex_t	*fork1_m;
 	pthread_mutex_t	*printf;
-}		t_philo;
+}			t_philo;
 
+typedef struct s_checker {
+	struct s_data		*data_bis;
+	pthread_t	checker_t;
+	pthread_mutex_t	j_m;
+	int		j;
+}			t_checker;
 typedef struct s_data {
 	size_t		b_time;
 	unsigned int	t_t_d;
@@ -41,6 +47,7 @@ typedef struct s_data {
 	unsigned int	nb_p;
 	char		ac;
 	t_philo		*philo;
+	t_checker	*checker;
 	pthread_mutex_t	*printf;
 	pthread_mutex_t	*l_data;
 }		t_data;
@@ -54,5 +61,6 @@ void		*ft_calloc(int nmem);
 int		Philosophers(t_data *data);
 int		ft_strcmp(char *s1, char *s2);
 int		ft_strlen(char *str);
+void		*second_checker(void *ptr);
 
 #endif

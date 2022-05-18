@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:46:03 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/17 22:07:41 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/18 16:00:34 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,8 @@
 int	set_arg(t_data *data, char **av, int ac)
 {
 	t_philo		*philo;
+	t_checker	*checker;
+	t_data		*data_bis;
 
 	data->nb_p = ft_atoi(av[1]);
 	data->t_t_d = ft_atoi(av[2]);
@@ -30,9 +32,13 @@ int	set_arg(t_data *data, char **av, int ac)
 	if (ac == 5)
 		data->n_t_e = 0;
 	philo = ft_calloc(sizeof(t_philo) * data->nb_p + 1);
-	if (!philo)
+	checker = ft_calloc(sizeof(t_checker) + 1);
+	data_bis = ft_calloc(sizeof(t_data) + 1);
+	if (!checker || ! philo || ! data_bis) 
 		return (-1);
 	data->philo = philo;
+	data->checker = checker;
+	data->checker->data_bis = data_bis;
 	data->l_data = ft_calloc(sizeof(pthread_mutex_t));
 	data->printf = ft_calloc(sizeof(pthread_mutex_t));
 	if (!data->printf || !data->l_data)
