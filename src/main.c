@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:46:03 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/18 23:18:04 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/18 23:40:54 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,9 +18,9 @@ int	set_arg(t_data *data, char **av, int ac)
 	t_philo		*philo;
 
 	data->nb_p = ft_atoi(av[1]);
-	data->t_t_d = ft_atoi(av[2]);
-	data->t_t_e = ft_atoi(av[3]);
-	data->t_t_s = ft_atoi(av[4]);
+	data->t_t_d = ft_atoi(av[2]) * 1000;
+	data->t_t_e = ft_atoi(av[3]) * 1000;
+	data->t_t_s = ft_atoi(av[4]) * 1000;
 	if (ac == 6)
 	{
 		data->n_t_e = ft_atoi(av[5]);

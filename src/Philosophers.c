@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/18 23:17:20 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/18 23:54:51 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ int	ft_print(t_philo *philo, char *str)
 		return (-1);
 	if (pthread_mutex_lock(philo->printf))
 		return (-1);
-	printf("%lu %u %s\n", time, philo->nb, str);
+	printf("%lu %u %s\n", time / 1000, philo->nb, str);
 	if (pthread_mutex_unlock(philo->printf))
 		return (-1);
 	return (0);
@@ -90,7 +90,7 @@ int	eat_last(t_philo *philo)
 		return (-1);
 	if (set_new_time(philo))
 		return (-1);
-	usleep(philo->t_t_e * 1000);
+	usleep(philo->t_t_e);
 	if (take_fork_1(philo, 0) == -1)
 		return (-1);
 	if (take_fork(philo, 0) == -1)
@@ -113,7 +113,7 @@ int	eat(t_philo *philo)
 		return (-1);
 	if (set_new_time(philo))
 		return (-1);
-	usleep(philo->t_t_e * 1000);
+	usleep(philo->t_t_e);
 	if (take_fork(philo, 0) == -1)
 		return (-1);
 	if (take_fork_1(philo, 0) == -1)
@@ -130,7 +130,7 @@ int	f_sleep(t_philo *philo)
 {
 	if (ft_print(philo, "is sleeping") == -1)
 		return (-1);
-	usleep(philo->t_t_s * 1000);
+	usleep(philo->t_t_s);
 	return (0);
 }
 
@@ -175,15 +175,16 @@ void	*alive(void *ptr)
 	int	life;
 	size_t	check;
 
-	usleep(1000);
+//	usleep(500);
 	philo = (t_philo*)ptr;
 	life = 1;
 	if (philo->nb % 2 != 0)
 	{
 		if (life && ft_print(philo, "is thinking") == -1)
 			return ((void*)-1);
-		usleep(philo->t_t_e * 1000);
+		usleep(philo->t_t_e);
 	}
+	still_breathing(philo, &life);
 	while (life)
 	{
 		still_breathing(philo, &life);
@@ -196,19 +197,17 @@ void	*alive(void *ptr)
 			philo->politely_wait = 0;
 			if (pthread_mutex_unlock(&(philo->politely_wait_m)))
 				return ((void*)-1);
-	//		printf("wait = %lu\n", check);
+			printf("%u %ld\n", philo->nb, check);
 			usleep(check);
 			still_breathing(philo, &life);
 			check_can_eat(philo, &ret);
 		}
-	//	printf(" in philo = %u, fourchette  %u\n", philo->nb, philo->fork);
 		if (life && philo->nb == philo->nb_p)
 			ret = eat_last(philo);
 		else if (life && philo->nb != philo->nb_p)
 			ret = eat(philo);
 		if (ret == -1)
 			return ((void*)-1);
-	//	printf(" out philo = %u, fourchette  %u\n", philo->nb, philo->fork);
 		still_breathing(philo, &ret);
 		if (life && f_sleep(philo) == -1)
 			return ((void*)-1);
@@ -226,9 +225,9 @@ int	get_time(size_t *time, size_t *b_time)
 	if (gettimeofday(&tv, NULL) == -1)
 		return (-1);
 	if (b_time == NULL)
-		*time = (tv.tv_sec * 1000000 + tv.tv_usec) / 1000;
+		*time = tv.tv_sec * 1000000 + tv.tv_usec;
 	else
-		*time = ((tv.tv_sec * 1000000 + tv.tv_usec) / 1000) - *b_time;
+		*time = (tv.tv_sec * 1000000 + tv.tv_usec) - *b_time;
 	return (0);
 }
 
