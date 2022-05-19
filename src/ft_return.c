@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/18 22:58:11 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/19 21:18:59 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,9 +24,9 @@ int	free_all(t_data *data)
 			return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].politely_wait_m)))
 			return (-1);
-		if (pthread_mutex_destroy(&(data->philo[i].is_alive_m)))
-			return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].time_m)))
+			return (-1);
+		if (pthread_mutex_destroy(&(data->philo[i].nb_eat_m)))
 			return (-1);
 		i++;
 	}
@@ -34,13 +34,19 @@ int	free_all(t_data *data)
 		return (-1);
 	if (pthread_mutex_destroy(data->l_data))
 		return (-1);
+	if (pthread_mutex_destroy(data->is_alive_m))
+		return (-1);
+	if (pthread_mutex_destroy(data->dead_m))
+		return (-1);
 	free(data->printf);
+	free(data->is_alive_m);
 	free(data->l_data);
+	free(data->dead_m);
 	free(data->philo);
 	return (0);
 }
 
-int	ft_return(int mark, t_data *data)
+char	ft_return(char mark, t_data *data)
 {
 	if (mark == 0)
 	{

@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/18 23:54:51 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/19 21:18:44 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,23 +14,13 @@
 
 int	ft_print(t_philo *philo, char *str)
 {
-	size_t	time;
+	unsigned int	time;
 
 	if (get_time(&time, &(philo->b_time)) == -1)
 		return (-1);
-	if (pthread_mutex_lock(&(philo->is_alive_m)))
-		return (-1);
-	if (!philo->is_alive && ft_strcmp("has died", str))
-	{
-		if (pthread_mutex_unlock(&(philo->is_alive_m)))
-			return (-1);
-		return (0);
-	}
-	if (pthread_mutex_unlock(&(philo->is_alive_m)))
-		return (-1);
 	if (pthread_mutex_lock(philo->printf))
 		return (-1);
-	printf("%lu %u %s\n", time / 1000, philo->nb, str);
+	printf("%u %u %s\n", time / 1000, philo->nb, str);
 	if (pthread_mutex_unlock(philo->printf))
 		return (-1);
 	return (0);
@@ -68,7 +58,7 @@ int	take_fork(t_philo *philo, unsigned int v)
 
 int	set_new_time(t_philo *philo)
 {
-	size_t	time;
+	unsigned int	time;
 
 	if (get_time(&time, &(philo->b_time)))
 		return (-1);
@@ -134,24 +124,48 @@ int	f_sleep(t_philo *philo)
 	return (0);
 }
 
-int	still_breathing(t_philo *philo, int *life)
+int	still_breathing(t_philo *philo, t_boolean *life)
 {
-	size_t	time;
-	size_t	philo_time;
-
+	unsigned int	time;
+	unsigned int	philo_time;
+	
+	if (pthread_mutex_lock(philo->is_alive_m))
+		return (-1);
+	if (*(philo->is_alive) == 0)
+		*life = false;
+	if (pthread_mutex_unlock(philo->is_alive_m))
+		return (-1);
+	if (*life == false)
+		return (0);
 	if (get_time(&time, &(philo->b_time)) == -1)
 		return (-1);
-	if (pthread_mutex_lock(&(philo->time_m)))
-		return (-1);
-	philo_time = philo->p_time;
-	if (pthread_mutex_unlock(&(philo->time_m)))
-		return (-1);
+//	if (pthread_mutex_lock(&(philo->nb_eat_m)))
+//		return (-1);
+//	philo_time = philo->nb_eat;
+//	if (pthread_mutex_unlock(&(philo->nb_eat_m)))
+//		return (-1);
+//	if (philo_time != 0)
+//	{
+		if (pthread_mutex_lock(&(philo->time_m)))
+			return (-1);
+		philo_time = philo->p_time;
+		if (pthread_mutex_unlock(&(philo->time_m)))
+			return (-1);
+//	}
+//	else
+//		philo_time = philo->b_time;
 	if (philo_time + philo->t_t_d <= time)
 	{
-		if (pthread_mutex_lock(&(philo->is_alive_m)))
+//		printf("%u has died\n\n", philo->nb);
+		if (pthread_mutex_lock(philo->is_alive_m))
 			return (-1);
-		philo->is_alive = 0;
-		if (pthread_mutex_unlock(&(philo->is_alive_m)))
+		*(philo->is_alive) = 0;
+		if (pthread_mutex_unlock(philo->is_alive_m))
+			return (-1);
+		if (pthread_mutex_lock(philo->dead_m))
+			return (-1);
+		*(philo->dead) = philo->nb;
+		if (pthread_mutex_unlock(philo->dead_m))
 			return (-1);
 		*life = 0;
 	}
@@ -172,32 +186,33 @@ void	*alive(void *ptr)
 {
 	t_philo	*philo;
 	int	ret;
-	int	life;
-	size_t	check;
+	t_boolean	life;
+	unsigned int	check;
 
-//	usleep(500);
 	philo = (t_philo*)ptr;
-	life = 1;
+	life = true;
 	if (philo->nb % 2 != 0)
 	{
+		usleep(10 * 1000); 
 		if (life && ft_print(philo, "is thinking") == -1)
 			return ((void*)-1);
-		usleep(philo->t_t_e);
+		usleep(philo->t_t_e - (10 * 1000));
 	}
 	still_breathing(philo, &life);
-	while (life)
+	while (life == true)
 	{
 		still_breathing(philo, &life);
 		check_can_eat(philo, &ret);
 		while (life && (unsigned int)ret != philo->nb)
 		{	
+			still_breathing(philo, &life);
 			if (pthread_mutex_lock(&(philo->politely_wait_m)))
 				return ((void*)-1);
 			check = philo->politely_wait;
-			philo->politely_wait = 0;
+		//	philo->politely_wait = 0;
 			if (pthread_mutex_unlock(&(philo->politely_wait_m)))
 				return ((void*)-1);
-			printf("%u %ld\n", philo->nb, check);
+		//	printf("%u %lu\n", philo->nb, check);
 			usleep(check);
 			still_breathing(philo, &life);
 			check_can_eat(philo, &ret);
@@ -208,26 +223,33 @@ void	*alive(void *ptr)
 			ret = eat(philo);
 		if (ret == -1)
 			return ((void*)-1);
-		still_breathing(philo, &ret);
+		still_breathing(philo, &life);
 		if (life && f_sleep(philo) == -1)
 			return ((void*)-1);
-		still_breathing(philo, &ret);
+		still_breathing(philo, &life);
 		if (life && ft_print(philo, "is thinking") == -1)
 			return ((void*)-1);
 	}
 	return (NULL);
 }
 
-int	get_time(size_t *time, size_t *b_time)
+char	init_time(size_t *b_time)
+{
+	struct timeval	tv;
+	
+	if (gettimeofday(&tv, NULL) == -1)
+		return (-1);
+	*b_time = tv.tv_sec * 1000000 + tv.tv_usec;
+	return (0);
+}
+
+char	get_time(unsigned int *time, size_t *b_time)
 {
 	struct timeval	tv;
 
 	if (gettimeofday(&tv, NULL) == -1)
 		return (-1);
-	if (b_time == NULL)
-		*time = tv.tv_sec * 1000000 + tv.tv_usec;
-	else
-		*time = (tv.tv_sec * 1000000 + tv.tv_usec) - *b_time;
+	*time = (tv.tv_sec * 1000000 + tv.tv_usec) - *b_time;
 	return (0);
 }
 
@@ -244,13 +266,13 @@ void	init_philo(unsigned int nb, t_data *data)
 	philo.t_t_s = data->t_t_s;
 	philo.nb_p = data->nb_p;
 	philo.printf = data->printf;
-	philo.is_alive = 1;
+	philo.is_alive = &(data->is_alive);
+	philo.is_alive_m = data->is_alive_m;
 	philo.politely_wait = 0;
 	philo.fork = 0;
 	pthread_mutex_init(&(philo.politely_wait_m), NULL);
 	pthread_mutex_init(&(philo.fork_m), NULL);
 	pthread_mutex_init(&(philo.nb_eat_m), NULL);
-	pthread_mutex_init(&(philo.is_alive_m), NULL);
 	pthread_mutex_init(&(philo.time_m), NULL);
 	if (data->nb_p != 1 && nb == data->nb_p - 1)
 	{
@@ -294,24 +316,7 @@ int	set_fork(t_data *data)
 	return (0);
 }
 
-int	kill_em_all(t_data *data)
-{
-	unsigned int	i;
-
-	i = 0;
-	while (i < data->nb_p)
-	{
-		if (pthread_mutex_lock(&(data->philo[i].is_alive_m)))
-			return (-1);
-		data->philo[i].is_alive = 0;
-		if (pthread_mutex_unlock(&(data->philo[i].is_alive_m)))
-			return (-1);
-		i++;
-	}
-	return (0);
-}
-
-int	get_philo_time(t_philo *philo, size_t *ret)
+int	get_philo_time(t_philo *philo, unsigned int *ret)
 {
 	if (pthread_mutex_lock(&(philo->time_m)))
 		return (-1);
@@ -323,28 +328,56 @@ int	get_philo_time(t_philo *philo, size_t *ret)
 
 int	must_wait1(t_data *data, unsigned int i)
 {
-	if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
+	unsigned int	philo_time;
+	unsigned int	time;
+
+	if (get_philo_time(&(data->philo[i]), &philo_time))
 		return (-1);
-	data->philo[i].politely_wait = data->t_t_e;
-	if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
+	if (get_time(&time, &(data->b_time)))
 		return (-1);
+	if (philo_time + data->t_t_d > time + data->t_t_e)
+	{
+		if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+		data->philo[i].politely_wait = (philo_time + data->t_t_d) - time;
+		if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+	}
+	else
+	{
+		if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+		data->philo[i].politely_wait = data->t_t_e;
+		if (pthread_mutex_unlock(&(data->philo[i].politely_wait_m)))
+			return (-1);
+	}
 	return (0);
 }
 
-int	must_wait(t_data *data, unsigned int i, size_t philo_eating)
+int	must_wait(t_data *data, unsigned int i, unsigned int philo_eating)
 {
-	size_t	p_eating_time;
-	size_t	shall_eat;
-	size_t	time;
+	unsigned int	philo_time;
+	unsigned int	p_eating_time;
+	unsigned int	p_is_done;
+	unsigned int	time;
 
+	if (i + 1 == philo_eating)
+		return (0);
 	if (get_philo_time(&(data->philo[philo_eating - 1]), &p_eating_time))
 		return (-1);
-	shall_eat = p_eating_time + data->t_t_e;
+	p_is_done = p_eating_time + data->t_t_e;
 	if (get_time(&time, &(data->b_time)))
 		return (-1);
-	if (time > shall_eat)
-		return (0);
-	p_eating_time = shall_eat - time;
+	if (time > p_is_done)
+		return (1);
+	if (get_philo_time(&(data->philo[i]), &philo_time))
+		return (-1);
+//	if (i == 197)
+//		printf("%u %lu < %lu\n", i, philo_time + data->t_t_d, p_is_done);
+	if ((philo_time + data->t_t_d) < p_is_done)
+		p_eating_time = (philo_time + data->t_t_d) - time;
+	else
+		p_eating_time = p_is_done - time;
 	if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
 		return (-1);
 	data->philo[i].politely_wait = p_eating_time;
@@ -368,9 +401,9 @@ int	philo_can_eat(t_data *data, unsigned int i)
 	return (0);
 }
 
-int	check_fellow(t_philo *philo, size_t time_i, size_t *ret)
+int	check_fellow(t_philo *philo, unsigned int time_i, unsigned int *ret)
 {
-	size_t	time_p;
+	unsigned int	time_p;
 
 	if (get_philo_time(philo, &time_p))
 		return (-1);
@@ -381,7 +414,7 @@ int	check_fellow(t_philo *philo, size_t time_i, size_t *ret)
 	return (0);
 }
 
-int	nagging_philo1(t_data *data, unsigned int i, size_t ret, size_t time_i)
+int	nagging_philo1(t_data *data, unsigned int i, unsigned int ret, unsigned int time_i)
 {
 	if (check_fellow(&(data->philo[i - 1]), time_i, &ret))
 		return (-1);
@@ -396,7 +429,7 @@ int	nagging_philo1(t_data *data, unsigned int i, size_t ret, size_t time_i)
 
 }
 
-int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
+int	nagging_philo(t_data *data, unsigned int i, unsigned int ret, unsigned int time_i)
 {
 	if (check_fellow(&(data->philo[data->nb_p - 1]), time_i, &ret))
 		return (-1);
@@ -410,7 +443,7 @@ int	nagging_philo(t_data *data, unsigned int i, size_t ret, size_t time_i)
 	return (0);
 }
 
-int	check_fork(t_data *data, unsigned int i, size_t *ret)
+int	check_fork(t_data *data, unsigned int i, unsigned int *ret)
 {
 	if (pthread_mutex_lock(&(data->philo[i].fork_m)))
 		return (-1);
@@ -429,8 +462,8 @@ int	check_fork(t_data *data, unsigned int i, size_t *ret)
 
 int	spaghettis(t_data *data, unsigned int i)
 {
-	size_t	ret;
-	size_t	time_i;
+	unsigned int	ret;
+	unsigned int	time_i;
 
 	if (check_fork(data, i, &ret) == -1)
 		return (-1);
@@ -472,35 +505,38 @@ int	check_nte(t_data *data, unsigned int i, unsigned int *check_meal)
 
 int	check_alive(t_data *data)
 {
+	int		ret;
 	unsigned int	i;
-	unsigned char	philo_life;
 	unsigned int	check_meal;
 
 	i = 0;
 	check_meal = 0;
 	while (7)
 	{	
-		if (pthread_mutex_lock(&(data->philo[i].is_alive_m)))
+		if (pthread_mutex_lock(data->is_alive_m))
 			return (-1);
-		philo_life = data->philo[i].is_alive;
-		if (pthread_mutex_unlock(&(data->philo[i].is_alive_m)))
-			return (-1);
-		if (!philo_life)	
+		if (data->is_alive == 0)
 		{
-			ft_print(&(data->philo[i]), "timestamp");
-			data->dead = i + 1;
-			kill_em_all(data);
-			usleep(1000);
-			ft_print(&(data->philo[i]), "has died");
+			if (pthread_mutex_unlock(data->is_alive_m))
+				return (-1);
 			return (0);
 		}
-		if (spaghettis(data, i))
+		if (pthread_mutex_unlock(data->is_alive_m))
+			return (-1);
+		ret = spaghettis(data, i);
+		if (ret == 1)
+			spaghettis(data, i);
+		else if (ret == -1)
 			return (-1);
 		if (data->n_t_e && check_nte(data, i, &check_meal))
 			return (-1);
 		if (check_meal == data->nb_p)
 		{
-			kill_em_all(data);
+			if (pthread_mutex_lock(data->is_alive_m))
+				return (-1);
+			data->is_alive = 0;
+			if (pthread_mutex_unlock(data->is_alive_m))
+				return (-1);
 			return (0);
 		}
 		i++;
@@ -513,9 +549,10 @@ int	check_alive(t_data *data)
 int	Philosophers(t_data *data)
 {
 	unsigned int	i;
+	unsigned int	time;
 
 	i = 0;
-	get_time(&(data->b_time), NULL);
+	init_time(&(data->b_time));
 	while (i < data->nb_p)
 	{
 		init_philo(i, data);
@@ -530,16 +567,16 @@ int	Philosophers(t_data *data)
 		i++;
 	}
 	if (check_alive(data) == -1)
-		ft_return(-1, data);
-	else
+		return (ft_return(-1, data));
+	i = 0;
+	while (i < data->nb_p)
 	{
-		i = 0;
-		while (i < data->nb_p)
-		{
-			if (pthread_join(data->philo[i].thread, NULL))
-				return (-1);
-			i++;
-		}
+		if (pthread_join(data->philo[i].thread, NULL))
+			return (-1);
+		i++;
 	}
+	if (get_time(&time, &data->b_time) == -1)
+		return (-1);
+	printf("%u %u has died\n", time / 1000, data->dead);
 	return (0);
 }
