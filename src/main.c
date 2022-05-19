@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:46:03 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/19 20:59:39 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/19 21:23:39 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ int	set_arg(t_data *data, char **av, int ac)
 	data->printf = ft_calloc(sizeof(pthread_mutex_t));
 	data->is_alive_m = ft_calloc(sizeof(pthread_mutex_t));
 	data->dead_m = ft_calloc(sizeof(pthread_mutex_t));
-	if (!data->printf || !data->l_data || !data->is_alive_m)
+	if (!data->printf || !data->l_data || !data->is_alive_m || !data->dead_m)
 		return (-1);
 	if (pthread_mutex_init(data->l_data, NULL))
 		return (-1);

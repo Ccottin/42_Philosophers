@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/19 21:18:44 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/19 22:06:31 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -209,10 +209,10 @@ void	*alive(void *ptr)
 			if (pthread_mutex_lock(&(philo->politely_wait_m)))
 				return ((void*)-1);
 			check = philo->politely_wait;
-		//	philo->politely_wait = 0;
+			philo->politely_wait = 0;
 			if (pthread_mutex_unlock(&(philo->politely_wait_m)))
 				return ((void*)-1);
-		//	printf("%u %lu\n", philo->nb, check);
+			printf("%u %u\n", philo->nb, check);
 			usleep(check);
 			still_breathing(philo, &life);
 			check_can_eat(philo, &ret);
@@ -268,6 +268,8 @@ void	init_philo(unsigned int nb, t_data *data)
 	philo.printf = data->printf;
 	philo.is_alive = &(data->is_alive);
 	philo.is_alive_m = data->is_alive_m;
+	philo.dead = &(data->dead);
+	philo.dead_m = data->dead_m;
 	philo.politely_wait = 0;
 	philo.fork = 0;
 	pthread_mutex_init(&(philo.politely_wait_m), NULL);
@@ -372,12 +374,13 @@ int	must_wait(t_data *data, unsigned int i, unsigned int philo_eating)
 		return (1);
 	if (get_philo_time(&(data->philo[i]), &philo_time))
 		return (-1);
-//	if (i == 197)
-//		printf("%u %lu < %lu\n", i, philo_time + data->t_t_d, p_is_done);
+//	printf("%u\n", time);
+//	printf("%u %u < %u\n", i + 1, philo_time + data->t_t_d, p_is_done);
 	if ((philo_time + data->t_t_d) < p_is_done)
 		p_eating_time = (philo_time + data->t_t_d) - time;
 	else
 		p_eating_time = p_is_done - time;
+	printf("%u eating sleep %u %u\n", time, i + 1, p_eating_time);
 	if (pthread_mutex_lock(&(data->philo[i].politely_wait_m)))
 		return (-1);
 	data->philo[i].politely_wait = p_eating_time;
