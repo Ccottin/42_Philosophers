@@ -9,8 +9,8 @@
 # include <unistd.h>
 
 typedef struct s_philo {
-	size_t		p_time;
-	size_t		b_time;
+	unsigned int	p_time;
+	unsigned int	b_time;
 	unsigned int	nb;
 	unsigned int	nb_eat;
 	unsigned char	is_alive;
@@ -21,7 +21,7 @@ typedef struct s_philo {
 	unsigned int	nb_p;
 	unsigned int	fork;
 	unsigned int	*fork1;
-	size_t		politely_wait;
+	unsigned int	politely_wait;
 	pthread_t	thread;
 	pthread_mutex_t	politely_wait_m;
 	pthread_mutex_t	fork_m;
@@ -33,7 +33,7 @@ typedef struct s_philo {
 }		t_philo;
 
 typedef struct s_data {
-	size_t		b_time;
+	unsigned int	b_time;
 	unsigned int	t_t_d;
 	unsigned int	t_t_e;
 	unsigned int	n_t_e;
@@ -46,7 +46,7 @@ typedef struct s_data {
 	pthread_mutex_t	*l_data;
 }		t_data;
 
-int		get_time(size_t *time, size_t *b_time);
+int		get_time(unsigned int *time, unsigned int *b_time);
 unsigned int	ft_atoi(char *nptr);
 int		ft_return(int mark, t_data *data);
 void		*ft_calloc(int nmem);
