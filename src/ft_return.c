@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/19 21:18:59 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/20 13:30:48 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,8 +22,8 @@ int	free_all(t_data *data)
 	{
 		if (pthread_mutex_destroy(&(data->philo[i].fork_m)))
 			return (-1);
-		if (pthread_mutex_destroy(&(data->philo[i].politely_wait_m)))
-			return (-1);
+	//	if (pthread_mutex_destroy(&(data->philo[i].politely_wait_m)))
+	//		return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].time_m)))
 			return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].nb_eat_m)))
