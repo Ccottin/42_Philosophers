@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:46:03 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/19 21:23:39 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/18 23:40:54 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,6 @@ int	set_arg(t_data *data, char **av, int ac)
 	data->t_t_d = ft_atoi(av[2]) * 1000;
 	data->t_t_e = ft_atoi(av[3]) * 1000;
 	data->t_t_s = ft_atoi(av[4]) * 1000;
-	data->is_alive = true;
-	data->dead = 0;
 	if (ac == 6)
 	{
 		data->n_t_e = ft_atoi(av[5]);
@@ -35,19 +33,14 @@ int	set_arg(t_data *data, char **av, int ac)
 	if (!philo)
 		return (-1);
 	data->philo = philo;
+	data->dead = 0;
 	data->l_data = ft_calloc(sizeof(pthread_mutex_t));
 	data->printf = ft_calloc(sizeof(pthread_mutex_t));
-	data->is_alive_m = ft_calloc(sizeof(pthread_mutex_t));
-	data->dead_m = ft_calloc(sizeof(pthread_mutex_t));
-	if (!data->printf || !data->l_data || !data->is_alive_m || !data->dead_m)
+	if (!data->printf || !data->l_data)
 		return (-1);
 	if (pthread_mutex_init(data->l_data, NULL))
 		return (-1);
-	if (pthread_mutex_init(data->dead_m, NULL))
-		return (-1);
 	if (pthread_mutex_init(data->printf, NULL))
-		return (-1);
-	if (pthread_mutex_init(data->is_alive_m, NULL))
 		return (-1);
 	return (0);
 }

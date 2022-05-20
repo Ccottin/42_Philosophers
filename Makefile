@@ -9,7 +9,7 @@ OBJ	= $(SRC:%.c=%.o)
 		
 CC	= gcc
 
-CFLAG	= -Wall -Wextra -Werror -g3 -fsanitize=thread
+CFLAG	= -Wall -Wextra -Werror -g3
 
 all	:	$(NAME)
 
