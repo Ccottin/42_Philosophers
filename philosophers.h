@@ -27,9 +27,9 @@ typedef struct s_philo {
 	unsigned int	*dead;
 	unsigned int	*fork1;
 	t_boolean	*is_alive;
-//	unsigned int	politely_wait;
+	unsigned int	politely_wait;
 	pthread_t	thread;
-//	pthread_mutex_t	politely_wait_m;
+	pthread_mutex_t	politely_wait_m;
 	pthread_mutex_t	fork_m;
 	pthread_mutex_t	nb_eat_m;
 	pthread_mutex_t	time_m;
