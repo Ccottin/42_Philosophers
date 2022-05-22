@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:46:03 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/18 23:40:54 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/22 18:57:51 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,7 +57,7 @@ int	main(int ac, char **av)
 		return (-1);
 	if (ret == 1)
 		return (0);
-	Philosophers(&data);
+	philosophers(&data);
 	if (ft_return(1, &data))
 		return (-1);
 	return (0);

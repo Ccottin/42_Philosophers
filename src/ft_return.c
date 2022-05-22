@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/18 22:58:11 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/22 17:57:41 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ int	ft_return(int mark, t_data *data)
 {
 	if (mark == 0)
 	{
-		printf("Arg requireds : [number_of_philosophers] [time_to_die] [time_to_eat]");
+		printf("Arg requireds : [number_of_philosophers] [time_to_die] [time_to_eat] ");
 		printf("[time_to_sleep] (opt.)[number_of_time_each_philosopher_must_eat]\n");
 		return (0);
 	}
