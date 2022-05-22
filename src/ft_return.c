@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/22 17:57:41 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/22 20:03:38 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,19 +44,27 @@ int	ft_return(int mark, t_data *data)
 {
 	if (mark == 0)
 	{
-		printf("Arg requireds : [number_of_philosophers] [time_to_die] [time_to_eat] ");
-		printf("[time_to_sleep] (opt.)[number_of_time_each_philosopher_must_eat]\n");
-		return (0);
-	}
-	if (mark == 1)
-	{
 		if (free_all(data))
 			return (-1);
 	}
+	if (mark == 1)
+	{
+		printf("Arg requireds : [number_of_philosophers] [time_to_die] [time_to_eat] ");
+		printf("[time_to_sleep] (opt.)[number_of_time_each_philosopher_must_eat]\n");
+	}
+	if (mark == 2)
+		printf("Please use digits only.\n");
+	if (mark == 3)
+		printf("You throw a big party, but no one was invited.\n");
+	if (mark == 4)
+		printf("You throw a fancy diner, but nobody was hungry.\n");
+	if (mark == 5)
+		printf("There was not enough space for so many people, food or bed.\n");
 	if (mark == -1)
 	{
 		write(1, "An error has occured.\n", 22);
-		free_all(data);
+		if (free_all(data))
+			return (-1);
 	}
 	return (0);
 }

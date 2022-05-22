@@ -39,7 +39,6 @@ typedef struct s_data {
 	unsigned int	n_t_e;
 	unsigned int	t_t_s;
 	unsigned int	nb_p;
-	unsigned int	dead;
 	char		ac;
 	t_philo		*philo;
 	pthread_mutex_t	*printf;

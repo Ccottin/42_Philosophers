@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/22 18:57:03 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/22 21:28:37 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,8 +16,6 @@ int	ft_print(t_philo *philo, char *str)
 {
 	unsigned int	time;
 
-	if (get_time(&time, &(philo->b_time)) == -1)
-		return (-1);
 	if (pthread_mutex_lock(&(philo->is_alive_m)))
 		return (-1);
 	if (!philo->is_alive && ft_strcmp("has died", str))
@@ -30,15 +28,17 @@ int	ft_print(t_philo *philo, char *str)
 		return (-1);
 	if (pthread_mutex_lock(philo->printf))
 		return (-1);
+	if (get_time(&time, &(philo->b_time)) == -1)
+		return (-1);
 	printf("%u %u %s\n", time / 1000, philo->nb, str);
 	if (pthread_mutex_unlock(philo->printf))
 		return (-1);
 	return (0);
 }
 
-int	take_fork_1(t_philo *philo, unsigned int v)
+int	take_fork_1(t_philo *philo, char v)
 {
-	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
+	if (v == 1 && ft_print(philo, "has taken a fork"))
 		return (-1);
 	if (v == 0)
 	{
@@ -51,9 +51,9 @@ int	take_fork_1(t_philo *philo, unsigned int v)
 	return (0);
 }
 
-int	take_fork(t_philo *philo, unsigned int v)
+int	take_fork(t_philo *philo, char v)
 {
-	if (v != 0 && ft_print(philo, "has taken a fork") == -1)
+	if (v == 1 && ft_print(philo, "has taken a fork"))
 		return (-1);
 	if (v == 0)
 	{
@@ -82,18 +82,18 @@ int	set_new_time(t_philo *philo)
 
 int	eat_last(t_philo *philo)
 {
-	if (take_fork_1(philo, philo->nb) == -1)
+	if (take_fork_1(philo, 1))
 		return (-1);
-	if (take_fork(philo, philo->nb) == -1)
+	if (take_fork(philo, 1))
 		return (-1);
-	if (ft_print(philo, "is eating") == -1)
+	if (ft_print(philo, "is eating"))
 		return (-1);
 	if (set_new_time(philo))
 		return (-1);
 	usleep(philo->t_t_e);
-	if (take_fork_1(philo, 0) == -1)
+	if (take_fork_1(philo, 0))
 		return (-1);
-	if (take_fork(philo, 0) == -1)
+	if (take_fork(philo, 0))
 		return (-1);
 	if (pthread_mutex_lock(&(philo->nb_eat_m)))
 		return (-1);
@@ -105,18 +105,18 @@ int	eat_last(t_philo *philo)
 
 int	eat(t_philo *philo)
 {
-	if (take_fork(philo, philo->nb) == -1)
+	if (take_fork(philo, 1))
 		return (-1);
-	if (take_fork_1(philo, philo->nb) == -1)
+	if (take_fork_1(philo, 1))
 		return (-1);
-	if (ft_print(philo, "is eating") == -1)
+	if (ft_print(philo, "is eating"))
 		return (-1);
 	if (set_new_time(philo))
 		return (-1);
 	usleep(philo->t_t_e);
-	if (take_fork(philo, 0) == -1)
+	if (take_fork(philo, 0))
 		return (-1);
-	if (take_fork_1(philo, 0) == -1)
+	if (take_fork_1(philo, 0))
 		return (-1);
 	if (pthread_mutex_lock(&(philo->nb_eat_m)))
 		return (-1);
@@ -126,20 +126,12 @@ int	eat(t_philo *philo)
 	return (0);
 }
 
-int	f_sleep(t_philo *philo)
-{
-	if (ft_print(philo, "is sleeping") == -1)
-		return (-1);
-	usleep(philo->t_t_s);
-	return (0);
-}
-
 int	still_breathing(t_philo *philo, char *life)
 {
 	unsigned int	time;
 	unsigned int	philo_time;
 
-	if (get_time(&time, &(philo->b_time)) == -1)
+	if (get_time(&time, &(philo->b_time)))
 		return (-1);
 	if (pthread_mutex_lock(&(philo->time_m)))
 		return (-1);
@@ -158,6 +150,26 @@ int	still_breathing(t_philo *philo, char *life)
 	return (0);
 }
 
+int	f_sleep(t_philo *philo, char *life)
+{
+	unsigned int	sleep;
+
+	if (ft_print(philo, "is sleeping"))
+		return (-1);
+	sleep = philo->t_t_s;
+	while (life && sleep > 1000)
+	{
+		sleep = sleep / 1000;
+		usleep(1000);
+		still_breathing(philo, life);
+	}
+	if (sleep != philo->t_t_s)
+		usleep(sleep);
+	else
+		usleep(philo->t_t_s);
+	return (0);
+}
+
 int	check_can_eat(t_philo *philo, unsigned int *ret)
 {
 	if (pthread_mutex_lock(&(philo->fork_m)))
@@ -168,7 +180,7 @@ int	check_can_eat(t_philo *philo, unsigned int *ret)
 	return (0);
 }
 
-char	think(t_philo *philo, char *life)
+int	think(t_philo *philo, char *life)
 {
 	unsigned int	fork;
 	unsigned int	must_wait;
@@ -216,7 +228,7 @@ void	*alive(void *ptr)
 		if (ret == -1)
 			return ((void*)-1);
 		still_breathing(philo, &life);
-		if (life && f_sleep(philo) == -1)
+		if (life && f_sleep(philo, &life) == -1)
 			return ((void*)-1);
 		still_breathing(philo, &life);
 		if (life && ft_print(philo, "is thinking") == -1)

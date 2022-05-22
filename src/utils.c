@@ -15,8 +15,8 @@ unsigned int	ft_atoi(char *nptr)
 		res = res * 10 + (nptr[i] - 48);
 		i++;
 	}
-	if (res > 4294967295)
-		return (-1);
+	if (res >= 429496)
+		return (429496);
 	return ((unsigned int)res);
 }
 
