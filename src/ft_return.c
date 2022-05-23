@@ -6,10 +6,9 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/23 15:14:18 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/23 20:16:52 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 
 #include "../philosophers.h"
 
@@ -18,15 +17,15 @@ int	free_all(t_data *data)
 	unsigned int	i;
 
 	i = 0;
-	while (i < data->nb_p)
+	while (data->nb_p != 1 && i < data->nb_p)
 	{
-		if (pthread_mutex_destroy(&(data->philo[i].fork_m)))
-			return (-1);
-		if (pthread_mutex_destroy(&(data->philo[i].politely_wait_m)))
+		if ( pthread_mutex_destroy(&(data->philo[i].fork_m)))
 			return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].is_alive_m)))
 			return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].time_m)))
+			return (-1);
+		if (pthread_mutex_destroy(&(data->philo[i].nb_eat_m)))
 			return (-1);
 		i++;
 	}
@@ -59,7 +58,7 @@ int	ft_return(int mark, t_data *data)
 	if (mark == 4)
 		printf("You throw a fancy diner, but nobody was hungry.\n");
 	if (mark == 5)
-		printf("There was not enough space for so many people, food or bed. Please use 429496 as max value\n");
+		printf("The place is crowded! Please use 429496 as max value\n");
 	if (mark == -1)
 	{
 		write(1, "An error has occured.\n", 22);
