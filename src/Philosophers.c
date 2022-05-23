@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 18:16:15 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/22 21:28:37 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/23 16:53:18 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,6 +131,13 @@ int	still_breathing(t_philo *philo, char *life)
 	unsigned int	time;
 	unsigned int	philo_time;
 
+	if (pthread_mutex_lock(&(philo->is_alive_m)))
+		return (-1);
+	*life = philo->is_alive;
+	if (pthread_mutex_unlock(&(philo->is_alive_m)))
+		return (-1);
+	if (*life == 0)
+		return (0);
 	if (get_time(&time, &(philo->b_time)))
 		return (-1);
 	if (pthread_mutex_lock(&(philo->time_m)))
@@ -157,16 +164,16 @@ int	f_sleep(t_philo *philo, char *life)
 	if (ft_print(philo, "is sleeping"))
 		return (-1);
 	sleep = philo->t_t_s;
-	while (life && sleep > 1000)
+	still_breathing(philo, life);
+	while (*life && sleep > 20000)
 	{
-		sleep = sleep / 1000;
-		usleep(1000);
+	//	printf("%u must wait = %u\n", philo->nb, sleep);
+		sleep = sleep - 10000;
+		usleep(10000);
 		still_breathing(philo, life);
 	}
-	if (sleep != philo->t_t_s)
+//	if (*life && sleep <= 1000)
 		usleep(sleep);
-	else
-		usleep(philo->t_t_s);
 	return (0);
 }
 
@@ -194,6 +201,14 @@ int	think(t_philo *philo, char *life)
 		must_wait = philo->politely_wait;
 		if (pthread_mutex_unlock(&(philo->politely_wait_m)))
 			return (-1);
+		still_breathing(philo, life);
+		while (*life && must_wait > 2000)
+		{
+			must_wait = must_wait - 1000;
+			usleep(1000);
+			still_breathing(philo, life);
+		}
+//		if (*life && must_wait <= 1000)
 		usleep(must_wait);
 		still_breathing(philo, life);
 		check_can_eat(philo, &fork);
@@ -218,9 +233,9 @@ void	*alive(void *ptr)
 	still_breathing(philo, &life);
 	while (life)
 	{
-		still_breathing(philo, &life);
-		if (think(philo, &life))
+		if (life && think(philo, &life))
 			return ((void*)-1);
+		still_breathing(philo, &life);
 		if (life && philo->nb == philo->nb_p)
 			ret = eat_last(philo);
 		else if (life && philo->nb != philo->nb_p)
@@ -228,11 +243,13 @@ void	*alive(void *ptr)
 		if (ret == -1)
 			return ((void*)-1);
 		still_breathing(philo, &life);
+	//	printf("%u eat life = %d\n", philo->nb, life);
 		if (life && f_sleep(philo, &life) == -1)
 			return ((void*)-1);
-		still_breathing(philo, &life);
+	//	printf("%u slife = %d\n", philo->nb, life);
 		if (life && ft_print(philo, "is thinking") == -1)
 			return ((void*)-1);
+		still_breathing(philo, &life);
 	}
 	return (NULL);
 }
@@ -525,7 +542,6 @@ int	check_alive(t_data *data)
 		if (!philo_life)	
 		{
 			ft_print(&(data->philo[i]), "timestamp");
-			data->dead = i + 1;
 			kill_em_all(data);
 			usleep(1000);
 			ft_print(&(data->philo[i]), "has died");

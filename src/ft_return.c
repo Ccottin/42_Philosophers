@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/22 20:03:38 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/23 15:14:18 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ int	ft_return(int mark, t_data *data)
 	if (mark == 4)
 		printf("You throw a fancy diner, but nobody was hungry.\n");
 	if (mark == 5)
-		printf("There was not enough space for so many people, food or bed.\n");
+		printf("There was not enough space for so many people, food or bed. Please use 429496 as max value\n");
 	if (mark == -1)
 	{
 		write(1, "An error has occured.\n", 22);
