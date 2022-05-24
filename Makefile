@@ -1,7 +1,7 @@
-NAME	= Philosophers
+NAME	= philo
 
-SRC	= src/main.c	src/Philosophers.c	src/ft_init.c\
-	src/ft_return.c	src/utils.c
+SRC	= src/main.c	src/philosophers.c	src/ft_init.c		src/alive.c	src/eat.c\
+	src/ft_return.c	src/utils.c		src/check_alive.c	src/check_alive_utils.c\
 
 HEADER	= ./philosophers.h
 
@@ -9,7 +9,7 @@ OBJ	= $(SRC:%.c=%.o)
 		
 CC	= gcc
 
-CFLAG	= -Wall -Wextra -Werror -g3
+CFLAG	= -Wall -Wextra -Werror  #-g3 -fsanitize=address
 
 all	:	$(NAME)
 

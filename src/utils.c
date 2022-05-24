@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/23 20:16:34 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/23 20:16:39 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/24 15:04:47 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,8 @@
 
 unsigned int	ft_atoi(char *nptr)
 {
-	int	i;
 	unsigned long int	res;
+	unsigned int		i;
 
 	i = 0;
 	res = 0;
@@ -55,7 +55,7 @@ int	ft_strcmp(char *s1, char *s2)
 
 void	*ft_calloc(int nmem)
 {
-	int	i;
+	int		i;
 	char	*str;
 
 	str = malloc(nmem);
@@ -67,5 +67,5 @@ void	*ft_calloc(int nmem)
 		str[i] = 0;
 		i++;
 	}
-	return ((void*)str);
+	return ((void *)str);
 }

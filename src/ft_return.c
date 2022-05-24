@@ -6,7 +6,7 @@
 /*   By: ccottin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/11 14:45:24 by ccottin           #+#    #+#             */
-/*   Updated: 2022/05/23 20:16:52 by ccottin          ###   ########.fr       */
+/*   Updated: 2022/05/24 14:49:51 by ccottin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ int	free_all(t_data *data)
 	i = 0;
 	while (data->nb_p != 1 && i < data->nb_p)
 	{
-		if ( pthread_mutex_destroy(&(data->philo[i].fork_m)))
+		if (pthread_mutex_destroy(&(data->philo[i].fork_m)))
 			return (-1);
 		if (pthread_mutex_destroy(&(data->philo[i].is_alive_m)))
 			return (-1);
@@ -41,15 +41,18 @@ int	free_all(t_data *data)
 
 int	ft_return(int mark, t_data *data)
 {
-	if (mark == 0)
+	if (mark == 0 || mark == -1)
 	{
+		if (mark == -1)
+			write(1, "An error has occured.\n", 22);
 		if (free_all(data))
 			return (-1);
 	}
 	if (mark == 1)
 	{
-		printf("Arg requireds : [number_of_philosophers] [time_to_die] [time_to_eat] ");
-		printf("[time_to_sleep] (opt.)[number_of_time_each_philosopher_must_eat]\n");
+		printf("Arg requireds : [number_of_philosophers] ");
+		printf("[time_to_die] [time_to_eat] [time_to_sleep] ");
+		printf("(opt.)[number_of_time_each_philosopher_must_eat]\n");
 	}
 	if (mark == 2)
 		printf("Please use digits only.\n");
@@ -59,11 +62,5 @@ int	ft_return(int mark, t_data *data)
 		printf("You throw a fancy diner, but nobody was hungry.\n");
 	if (mark == 5)
 		printf("The place is crowded! Please use 429496 as max value\n");
-	if (mark == -1)
-	{
-		write(1, "An error has occured.\n", 22);
-		if (free_all(data))
-			return (-1);
-	}
 	return (0);
 }
